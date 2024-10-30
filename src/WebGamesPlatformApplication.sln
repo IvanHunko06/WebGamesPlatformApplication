@@ -1,0 +1,84 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34902.65
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{9A7137C6-E251-420E-9563-03CD339D78DC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Server", "Server", "{04804327-2DB6-49AA-8D92-4341DAE43BBB}"
+EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "webgamesplatformclient", "Client\WebGamesPlatformClient\webgamesplatformclient.esproj", "{26013204-B20A-4B6B-AE20-1B3E28C3517B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{239AA768-5499-4C05-A2AB-9D9C3E820ACE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GamesService", "Server\Services\GamesService\GamesService.csproj", "{CAFD29B0-9C42-463E-8D9E-2D544265C067}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Элементы решения", "Элементы решения", "{B488AF95-C682-470F-87F6-769400269C84}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		Volumes\reverse-proxy\nginx.conf = Volumes\reverse-proxy\nginx.conf
+	EndProjectSection
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{0722E562-DB9D-426C-821E-5388968C79A5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RoomsService", "Server\Services\RoomsService\RoomsService.csproj", "{0D6E998F-0207-425A-9562-7EB29FBA4499}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebSocketService", "Server\Services\WebSocketService\WebSocketService.csproj", "{F5BF099B-E4CB-40E9-942B-739A5215FB49}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RatingService", "Server\Services\RatingService\RatingService.csproj", "{96518604-5308-4E65-A272-7487D5CCD873}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MatchHistoryService", "Server\Services\MatchHistoryService\MatchHistoryService.csproj", "{BF4C3898-5262-41BC-9202-D2EF3C632CE0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{26013204-B20A-4B6B-AE20-1B3E28C3517B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26013204-B20A-4B6B-AE20-1B3E28C3517B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26013204-B20A-4B6B-AE20-1B3E28C3517B}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{26013204-B20A-4B6B-AE20-1B3E28C3517B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26013204-B20A-4B6B-AE20-1B3E28C3517B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26013204-B20A-4B6B-AE20-1B3E28C3517B}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{CAFD29B0-9C42-463E-8D9E-2D544265C067}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAFD29B0-9C42-463E-8D9E-2D544265C067}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAFD29B0-9C42-463E-8D9E-2D544265C067}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAFD29B0-9C42-463E-8D9E-2D544265C067}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0722E562-DB9D-426C-821E-5388968C79A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0722E562-DB9D-426C-821E-5388968C79A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0722E562-DB9D-426C-821E-5388968C79A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0722E562-DB9D-426C-821E-5388968C79A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D6E998F-0207-425A-9562-7EB29FBA4499}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D6E998F-0207-425A-9562-7EB29FBA4499}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D6E998F-0207-425A-9562-7EB29FBA4499}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D6E998F-0207-425A-9562-7EB29FBA4499}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5BF099B-E4CB-40E9-942B-739A5215FB49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5BF099B-E4CB-40E9-942B-739A5215FB49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5BF099B-E4CB-40E9-942B-739A5215FB49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5BF099B-E4CB-40E9-942B-739A5215FB49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96518604-5308-4E65-A272-7487D5CCD873}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96518604-5308-4E65-A272-7487D5CCD873}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96518604-5308-4E65-A272-7487D5CCD873}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96518604-5308-4E65-A272-7487D5CCD873}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF4C3898-5262-41BC-9202-D2EF3C632CE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF4C3898-5262-41BC-9202-D2EF3C632CE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF4C3898-5262-41BC-9202-D2EF3C632CE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF4C3898-5262-41BC-9202-D2EF3C632CE0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{26013204-B20A-4B6B-AE20-1B3E28C3517B} = {9A7137C6-E251-420E-9563-03CD339D78DC}
+		{239AA768-5499-4C05-A2AB-9D9C3E820ACE} = {04804327-2DB6-49AA-8D92-4341DAE43BBB}
+		{CAFD29B0-9C42-463E-8D9E-2D544265C067} = {239AA768-5499-4C05-A2AB-9D9C3E820ACE}
+		{0D6E998F-0207-425A-9562-7EB29FBA4499} = {239AA768-5499-4C05-A2AB-9D9C3E820ACE}
+		{F5BF099B-E4CB-40E9-942B-739A5215FB49} = {239AA768-5499-4C05-A2AB-9D9C3E820ACE}
+		{96518604-5308-4E65-A272-7487D5CCD873} = {239AA768-5499-4C05-A2AB-9D9C3E820ACE}
+		{BF4C3898-5262-41BC-9202-D2EF3C632CE0} = {239AA768-5499-4C05-A2AB-9D9C3E820ACE}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6AB9FAB0-B9A1-4B9F-99D4-0E28B4FC0B79}
+	EndGlobalSection
+EndGlobal

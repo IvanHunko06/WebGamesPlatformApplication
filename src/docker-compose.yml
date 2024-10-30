@@ -1,0 +1,240 @@
+
+services:
+
+  react-client:
+    image: ${DOCKER_REGISTRY-}react-client
+    container_name: "ReactWebClient"
+    build:
+        context: ./Client/webgamesplatformclient/
+        dockerfile: Dockerfile
+    networks:
+        - frontend-network
+    
+  nginx-gateway:
+    image: nginx
+    container_name: "ApiGateway"
+    ports:
+        - "7005:443"
+    volumes:
+        - ./Volumes/reverse-proxy/nginx.conf:/etc/nginx/nginx.conf
+        - ./Volumes/certs/api-gateway:/certs/
+        - ./Volumes/certs/authentification-server/keycloak.crt:/certs/trusted/keycloak.crt
+    networks:
+        - frontend-network
+        - authtentification-service-external-net
+        - games-service-external-net
+        - rooms-service-external-net
+        - websocket-service-external-net
+        - rating-service-external-net
+        - match-history-service-external-net
+    depends_on:
+        - authtentification-server
+
+  authtentification-server:
+    image: keycloak/keycloak
+    container_name: "AuthtentificationService"
+    volumes:
+        - ./Volumes/certs/authentification-server:/certs/
+        - ./Volumes/certs/api-gateway/apiGateway.crt:/certs/trusted/apiGateway.crt
+    networks:
+        - authtentification-service-internal-net
+        - authtentification-service-external-net
+    environment:
+        - "KC_BOOTSTRAP_ADMIN_USERNAME=admin"
+        - "KC_BOOTSTRAP_ADMIN_PASSWORD=admin"
+        - "KC_DB=postgres"
+        - "KC_DB_USERNAME=keycloak"
+        - "KC_DB_PASSWORD=password"
+        - "KC_DB_URL=jdbc:postgresql://AuthtentificationServiceDatabase:5432/keycloak"
+        - "KC_HTTPS_CERTIFICATE_FILE=/certs/keycloak.crt"
+        - "KC_HTTPS_CERTIFICATE_KEY_FILE=/certs/keycloak-privateKey.key"
+        - "KC_PROXY_HEADERS=xforwarded"
+        - "KC_TRUSTSTORE-PATHS=/certs/trusted/"
+        - "KC_TLS_HOSTNAME_VERIFIER=ANY"
+        - "PROXY_ADDRESS_FORWARDING=true"
+        - "KC_HOSTNAME_STRICT=false"
+        - "KC_LOG_LEVEL: INFO"
+    command:  ["start-dev", "--http-relative-path", "/auth"]
+    depends_on:
+        - authtentification-server-database
+  
+  authtentification-server-database:
+    image: postgres:16
+    container_name:  AuthtentificationServiceDatabase
+    environment:
+      - "POSTGRES_DB=keycloak"
+      - "POSTGRES_USER=keycloak"
+      - "POSTGRES_PASSWORD=password"
+    volumes:
+      - ./Volumes/auth-database-data/:/var/lib/postgresql/data
+    networks:
+      - authtentification-service-internal-net
+
+  games-service-database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: GamesServiceDatabase
+    environment:
+        - "ACCEPT_EULA=Y"
+        - "MSSQL_SA_PASSWORD=Ck4wy|!K1>NwfzxG0Q7x"
+        - "MSSQL_PID=Express"
+    restart: unless-stopped
+    networks:
+        - games-service-internal-net
+    volumes:
+        - ./Volumes/games-database-data/data:/var/opt/mssql/data
+        - ./Volumes/games-database-data/secrets:/var/opt/mssql/secrets
+
+  games-service-server:
+    image: ${DOCKER_REGISTRY-}gameservice
+    build:
+        context: ./Server/Services/GamesService/
+        dockerfile: ./Dockerfile
+    container_name: GamesService
+    environment:
+        - "ASPNETCORE_HTTP_PORTS=5247"
+    restart: unless-stopped
+    depends_on:
+        - games-service-database
+    networks:
+        - games-service-internal-net
+        - games-service-external-net
+        - authtentification-service-external-net
+
+  rooms-service-server:
+    image: ${DOCKER_REGISTRY-}roomsservice
+    build:
+        context: ./Server/Services/RoomsService/
+        dockerfile: ./Dockerfile
+    container_name: RoomsService
+    environment:
+        - "ASPNETCORE_HTTP_PORTS=5063"
+    restart: unless-stopped
+    depends_on:
+        - rooms-service-database
+    networks:
+        - rooms-service-internal-net
+        - rooms-service-external-net
+        - authtentification-service-external-net
+
+  rooms-service-database:
+    image: redis
+    container_name: RoomsServiceDatabase
+    restart: unless-stopped
+    networks:
+        - rooms-service-internal-net
+  
+  web-socket-service-server:
+    image: ${DOCKER_REGISTRY-}websocket-service
+    build:
+        context: ./Server/Services/WebSocketService/
+        dockerfile: ./Dockerfile
+    container_name: WebSocketService
+    environment:
+        - "ASPNETCORE_HTTP_PORTS=5059"
+    restart: unless-stopped
+    networks:
+        - websocket-service-external-net
+        - authtentification-service-external-net
+
+  rating-service-database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: RatingServiceDatabase
+    volumes:
+        - ./Volumes/rating-database-data/data:/var/opt/mssql/data
+        - ./Volumes/rating-database-data/secrets:/var/opt/mssql/secrets
+    environment:
+        - "ACCEPT_EULA=Y"
+        - "MSSQL_SA_PASSWORD=boi*N{g6k1(}t*{LQ#(]"
+        - "MSSQL_PID=Express"
+    restart: unless-stopped
+    networks:
+        - rating-service-internal-net
+
+  rating-service-server:
+    image: ${DOCKER_REGISTRY-}ratingservice
+    build:
+        context: ./Server/Services/RatingService/
+        dockerfile: ./Dockerfile
+    container_name: RatingService
+    environment:
+        - "ASPNETCORE_HTTP_PORTS=5263"
+    
+    restart: unless-stopped
+    depends_on:
+        - rating-service-database
+    networks:
+        - rating-service-internal-net
+        - rating-service-external-net
+        - authtentification-service-external-net
+  
+  match-history-service-database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: MatchHistoryServiceDatabase
+    volumes:
+        - ./Volumes/match-history-database-data/data:/var/opt/mssql/data
+        - ./Volumes/match-history-database-data/secrets:/var/opt/mssql/secrets
+    environment:
+        - "ACCEPT_EULA=Y"
+        - "MSSQL_SA_PASSWORD=boi*N{g6k1(}t*{LQ#(]"
+        - "MSSQL_PID=Express"
+    restart: unless-stopped
+    networks:
+        - match-history-service-internal-net
+
+  match-history-service-server:
+    image: ${DOCKER_REGISTRY-}matchhistoryservice
+    build:
+        context: ./Server/Services/MatchHistoryService/
+        dockerfile: ./Dockerfile
+    container_name: MatchHistoryService
+    environment:
+        - "ASPNETCORE_HTTP_PORTS=5063"
+    
+    restart: unless-stopped
+    depends_on:
+        - match-history-service-database
+    networks:
+        - match-history-service-internal-net
+        - match-history-service-external-net
+        - authtentification-service-external-net
+
+  
+    
+networks:
+    frontend-network:
+        driver: bridge
+        name: FrontendNetwork
+    authtentification-service-internal-net:
+        driver: bridge
+        name: AuthtentificationServiceInternalNetwork
+    authtentification-service-external-net:
+        driver: bridge
+        name: AuthtentificationServiceExternalNetwork
+    games-service-external-net:
+        driver: bridge
+        name: GamesServiceExternalNetwork
+    games-service-internal-net:
+        driver: bridge
+        name: GameServiceInternalNetwork
+    rooms-service-external-net:
+        driver: bridge
+        name: RoomsServiceExternalNetwork
+    rooms-service-internal-net:
+        driver: bridge
+        name: RoomsServiceInternalNetwork
+    websocket-service-external-net:
+        driver:  bridge
+        name: WebSocketServiceExternalNetwork
+    rating-service-internal-net:
+        driver: bridge
+        name: RatingServiceInternalNetwork
+    rating-service-external-net:
+        driver: bridge
+        name: RatingServiceExternalNetwork
+    match-history-service-internal-net:
+        driver: bridge
+        name: MatchHistoryServiceInternalNetwork
+    match-history-service-external-net:
+        driver: bridge
+        name: MatchHistoryServiceExternalNetwork
+        

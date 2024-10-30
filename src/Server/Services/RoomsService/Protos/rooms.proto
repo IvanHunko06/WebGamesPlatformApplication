@@ -1,0 +1,74 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+option csharp_namespace = "RoomsService.Protos";
+
+service Rooms{
+	rpc CreateRoom (CreateRoomRequest) returns (CreateRoomReply);
+	rpc GetRoomsList (GetRoomsListRequest) returns (GetRoomsListReply);
+	rpc GetPublicRoomsList (GetPublicRoomsRequest) returns (GetRoomsListReply);
+	rpc DeleteRoom (DeleteRoomRequest) returns (DeleteRoomReply);
+	rpc DeleteOwnRoom (DeleteRoomRequest) returns (DeleteRoomReply);
+	rpc JoinRoom (JoinRoomRequest) returns (JoinRoomReply);
+	rpc LeaveRoom (LeaveRoomRequest) returns (LeaveRoomReply);
+}
+message CreateRoomRequest {
+	string GameId = 1;
+	string RoomName = 2;
+	bool IsPrivate = 3;
+	int32 SelectedPlayersCount = 4;
+}
+message CreateRoomReply {
+	bool IsSuccess = 1;
+	optional string ErrorMessage = 2;
+	string RoomId = 3;
+	optional string AccessToken = 4;
+}
+message SetRoomOwnerPlayerRequest{
+	string RoomId = 1;
+	string PlayerId = 2;
+}
+message SetRoomOwnerPlayerReply{
+	bool IsSuccess = 1;
+	optional string ErrorMessage = 2;
+}
+message GetRoomsListRequest{
+	optional string GameId = 1;
+	optional bool OnlyPublicRooms = 2;
+}
+message GetRoomsListReply{
+	repeated GameRoom rooms = 1;
+}
+message GameRoom{
+	string GameId = 1;
+	string RoomName = 2;
+	bool IsPrivate = 3;
+	int32 SelectedPlayersCount = 4;
+	int32 CurrentPlayersCount = 5;
+	string RoomId = 6;
+	string Creator = 7;
+}
+message DeleteRoomRequest{
+	string RoomId = 1;
+}
+message DeleteRoomReply{
+	bool IsSuccess = 1;
+	optional string ErrorMessage = 2;
+}
+message JoinRoomReply {
+	bool IsSuccess = 1;
+	optional string ErrorMessage = 3;
+}
+message LeaveRoomReply {
+	bool IsSuccess = 1;
+	optional string ErrorMessage = 3;
+}
+message JoinRoomRequest {
+	string RoomId = 1;
+	optional string AccessToken = 2;
+}
+message LeaveRoomRequest {
+	string RoomId = 1;
+}
+message GetPublicRoomsRequest{
+	string GameId = 1;
+}
