@@ -7,9 +7,8 @@ function App() {
     {isLogged? (
       <MainApp/>
     ):(
-      <p>authentication in progress</p>
+      <div className="loading">Authentication in progress</div>
     )}
-
     </>
 
   );

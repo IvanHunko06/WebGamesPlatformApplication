@@ -1,39 +1,26 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import './App.css'
 import { SignalRProvider } from './contexts/SignalRContext'
 import { useAuth } from './contexts/AuthContext';
+import HomePage from './Сomponents/HomePage';
+import Header from './Сomponents/Header';
+import Footer from './Сomponents/Footer';
+import LeaderPage from './Сomponents/LeaderPage';
+import GamesPage from './Сomponents/GamesPage';
 function MainApp(){
-    const [count, setCount] = useState(0)
     const hubUrlOne = 'https://localhost:7005/api/hubs/main-hub';
     const {logout, getToken} = useAuth()
     let token = getToken()
     return (
         <SignalRProvider hubUrl={hubUrlOne} jwtToken={token}>
-            <div>
-            <a href="https://vitejs.dev" target="_blank">
-                <img src={viteLogo} className="logo" alt="Vite logo" />
-            </a>
-            <a href="https://react.dev" target="_blank">
-                <img src={reactLogo} className="logo react" alt="React logo" />
-            </a>
-            </div>
-            <h1>Vite + React</h1>
-            <div className="card">
-            <button onClick={() => setCount((count) => count + 1)}>
-                count is {count}
-            </button>
-            <p>
-                Edit <code>src/App.jsx</code> and save to test HMR
-            </p>
-            </div>
-            <p className="read-the-docs">
-            {token}
-            </p>
-            <button onClick={() => logout()}>
-                Logout
-            </button>
+            <Header/>
+            <Routes>
+                <Route path="/home" element={<HomePage />} />
+                <Route path="/leaderboard" element={<LeaderPage />} />
+                <Route path="/games" element={<GamesPage />} /> 
+                <Route path="*" element={<Navigate to="/home" />} />
+            </Routes>
+            <Footer/>
         </SignalRProvider>
     );
 }
