@@ -187,10 +187,16 @@ header nav.active {
   color: #fff;
   transition: color 0.3s;
   text-decoration: none;
-}
+  transition: color 0.3s ease, transform 0.3s ease;
 
-.social-icon:hover, .logo:hover {
+}
+.logo:hover{
   color: #a8f7fe;
+
+}
+.social-icon:hover {
+  color: #a8f7fe;
+  transform: rotate(15deg) scale(1.2);
 }
 
 .ag-courses_box {
@@ -527,4 +533,146 @@ header nav.active {
       max-width: 100%;
       padding: 1em 0;
   }
+}
+
+
+
+
+main { 
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+  padding: 20px;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  background-color: #f9f9f9;
+}
+
+main h1 {
+  color: #0056b3;
+  font-size: 38px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.photo{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+}
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+
+.photo img {
+  width: 75px;
+  height: 75px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s;
+}
+
+.photo img:hover {
+  transform: scale(1.15) rotate(8deg);
+  box-shadow: 0px 8px 18px rgba(0, 0, 0, 0.3);
+}
+
+.change-photo {
+  margin-top: 10px;
+  padding: 12px 25px;
+  background-color: #0056b3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  font-weight: bold;
+}
+
+.change-photo:hover {
+  background-color: #003f88;
+  transform: scale(1.1);
+}
+
+.profile-info {
+  width: 100%;
+}
+
+.profile-info input,
+.profile-info select {
+  width: 85%;
+  padding: 12px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 18px;
+  text-align: center;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.profile-info input:focus,
+.profile-info select:focus {
+  box-shadow: 0px 5px 10px rgba(0, 86, 179, 0.4);
+  transform: translateY(-3px);
+  outline: none;
+}
+
+.profile-info button.save-btn {
+  padding: 12px 25px;
+  background-color: #0056b3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  font-size: 18px;
+  margin: 10px 0;
+  font-weight: bold;
+}
+
+.profile-info button.save-btn:hover {
+  background-color: #003f88;
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0px 8px 16px rgba(0, 86, 179, 0.4);
+}
+
+.profile-info select {
+  appearance: none;
+  background: linear-gradient(to right, #e3f2fd, #bbdefb);
+  cursor: pointer;
+}
+
+.profile-info select:hover {
+  background: linear-gradient(to right, #bbdefb, #e3f2fd);
+}
+
+.profile-info .total {
+  font-size: 20px;
+  color: #444;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+.profile-info .total:hover {
+  color: #0056b3;
+}
+.logout-button {
+  background-color: #4682b4; 
+  color: white; 
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.logout-button:hover {
+  background-color: #5a9bd3;
+  transform: scale(1.05); 
 }
