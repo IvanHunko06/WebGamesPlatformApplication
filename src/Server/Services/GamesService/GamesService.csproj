@@ -40,4 +40,8 @@
     <Folder Include="EntityConfigurations\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\SharedApiUtils\SharedApiUtils.csproj" />
+  </ItemGroup>
+
 </Project>

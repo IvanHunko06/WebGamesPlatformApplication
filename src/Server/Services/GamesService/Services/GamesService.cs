@@ -3,13 +3,10 @@ using GamesService.Protos;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using System.Data;
-using System.Linq;
-
+using SharedApiUtils;
 namespace GamesService.Services;
 
 public class GamesService : Games.GamesBase
