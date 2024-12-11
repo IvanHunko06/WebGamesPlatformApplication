@@ -10,7 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Protos\games.proto" />
     <None Remove="Protos\rooms.proto" />
   </ItemGroup>
 
@@ -22,7 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\games.proto" GrpcServices="Client" />
+    <ProjectReference Include="..\..\SharedApiUtils\SharedApiUtils.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Protobuf Include="Protos\rooms.proto" GrpcServices="Server" />
   </ItemGroup>
 

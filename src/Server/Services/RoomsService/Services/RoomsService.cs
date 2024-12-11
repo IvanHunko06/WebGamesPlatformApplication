@@ -1,12 +1,12 @@
-﻿using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+﻿using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using RoomManagmentService.Models;
 using RoomsService.Protos;
+using SharedApiUtils;
+using SharedApiUtils.ServicesAccessing.Connections;
 using StackExchange.Redis;
 using System.Security.Claims;
 using System.Text.Json;
-
 namespace RoomsService.Services;
 
 public class RoomsService : Rooms.RoomsBase
@@ -14,17 +14,19 @@ public class RoomsService : Rooms.RoomsBase
     private readonly GamesServiceConnection gamesService;
     private readonly ILogger<RoomsService> logger;
     private readonly IConfiguration configuration;
+    private readonly RoomsEventsConnection roomsEvents;
     private readonly IDatabase redisDatabase;
     private readonly int roomHoursLifetime;
-    public RoomsService(GamesServiceConnection gamesService, ILogger<RoomsService> logger, RedisHelper redisHelper, IConfiguration configuration)
+    public RoomsService(GamesServiceConnection gamesService, ILogger<RoomsService> logger, RedisHelper redisHelper, IConfiguration configuration, RoomsEventsConnection roomsEvents)
     {
         this.gamesService = gamesService;
         this.logger = logger;
         this.configuration = configuration;
+        this.roomsEvents = roomsEvents;
         this.redisDatabase = redisHelper.GetRedisDatabase();
         this.roomHoursLifetime = configuration.GetValue<int>("RoomsLifetimeInHours");
     }
-    
+
     [Authorize(Policy = "AllAuthenticatedUsers")]
     public override async Task<CreateRoomReply> CreateRoom(CreateRoomRequest request, ServerCallContext context)
     {
@@ -38,7 +40,7 @@ public class RoomsService : Rooms.RoomsBase
 
 
             var clientCombination = await gamesService.GetClient();
-            if(clientCombination.client is null || clientCombination.client is null)
+            if (clientCombination.client is null || clientCombination.client is null)
             {
                 reply.ErrorMessage = ErrorMessages.InternalServerError;
                 return reply;
@@ -46,7 +48,7 @@ public class RoomsService : Rooms.RoomsBase
 
             var gamesListReply = await clientCombination.client.GetGamesListAsync(new Google.Protobuf.WellKnownTypes.Empty(), clientCombination.headers);
             var gameInfo = gamesListReply.Games.Where(g => g.GameId == request.GameId).FirstOrDefault();
-            if(gameInfo is null)
+            if (gameInfo is null)
             {
                 reply.ErrorMessage = ErrorMessages.GameIdNotValid;
                 return reply;
@@ -86,7 +88,7 @@ public class RoomsService : Rooms.RoomsBase
             var user = context.GetHttpContext().User;
             var userClaims = user.Claims;
             var subjectClaim = userClaims.Where(c => c.Type == ClaimTypes.NameIdentifier).FirstOrDefault();
-            if(subjectClaim is null)
+            if (subjectClaim is null)
             {
                 reply.ErrorMessage = ErrorMessages.SubjectClaimNotFound;
                 return reply;
@@ -100,10 +102,12 @@ public class RoomsService : Rooms.RoomsBase
                 GameId = request.GameId,
                 SelectedPlayerCount = selectedPlayersCount,
                 RoomName = request.RoomName,
-                Creator = subjectClaim.Value,    
+                Creator = subjectClaim.Value,
             };
             await redisDatabase.StringSetAsync(roomId, JsonSerializer.Serialize(room), expiry: TimeSpan.FromHours(roomHoursLifetime));
             await AddRoomIdListItem(roomId);
+            if (!room.IsPrivate)
+                _ = Task.Run(() => OnRoomCreatedEvent(room));
             reply.IsSuccess = true;
             reply.RoomId = roomId;
             if (request.IsPrivate)
@@ -114,10 +118,10 @@ public class RoomsService : Rooms.RoomsBase
             logger.LogError(ex.ToString());
             reply.ErrorMessage = ErrorMessages.InternalServerError;
         }
-        
+
         return reply;
     }
-    
+
     [Authorize(Policy = "AdminOrPrivateClient")]
     public override async Task<DeleteRoomReply> DeleteRoom(DeleteRoomRequest request, ServerCallContext context)
     {
@@ -125,14 +129,17 @@ public class RoomsService : Rooms.RoomsBase
         try
         {
 
-            if (!(await redisDatabase.KeyExistsAsync(request.RoomId)))
+
+            var room = await GetRoomById(request.RoomId);
+            if (room is null)
             {
-                await DeleteRoomIdListItem(request.RoomId);
                 reply.ErrorMessage = ErrorMessages.RoomIdNotExist;
+                _ = Task.Run(()=>DeleteRoomIdListItem(request.RoomId));
                 return reply;
             }
             await redisDatabase.KeyDeleteAsync(request.RoomId);
             await DeleteRoomIdListItem(request.RoomId);
+            _ = Task.Run(()=>OnRoomDeleated(room.RoomId,room.GameId));
             reply.IsSuccess = true;
 
         }
@@ -144,7 +151,7 @@ public class RoomsService : Rooms.RoomsBase
         }
         return reply;
     }
-    
+
     [Authorize(Policy = "AllAuthenticatedUsers")]
     public override async Task<DeleteRoomReply> DeleteOwnRoom(DeleteRoomRequest request, ServerCallContext context)
     {
@@ -155,6 +162,7 @@ public class RoomsService : Rooms.RoomsBase
             if (room is null)
             {
                 reply.ErrorMessage = ErrorMessages.RoomIdNotExist;
+                _ = Task.Run(() => DeleteRoomIdListItem(request.RoomId));
                 return reply;
             }
             var user = context.GetHttpContext().User;
@@ -172,14 +180,15 @@ public class RoomsService : Rooms.RoomsBase
             }
             await redisDatabase.KeyDeleteAsync(request.RoomId);
             await DeleteRoomIdListItem(request.RoomId);
+            _ = Task.Run(() => OnRoomDeleated(room.RoomId, room.GameId));
             reply.IsSuccess = true;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex.ToString());
             reply.ErrorMessage = ErrorMessages.InternalServerError;
         }
-        return reply ;
+        return reply;
     }
 
     [Authorize(Policy = "AllAuthenticatedUsers")]
@@ -209,7 +218,7 @@ public class RoomsService : Rooms.RoomsBase
                     var roomModel = await GetRoomById(roomId);
                     if (roomModel is null) continue;
 
-                    if (request.HasOnlyPublicRooms && request.OnlyPublicRooms && !roomModel.IsPrivate)
+                    if (request.HasOnlyPublicRooms && request.OnlyPublicRooms && roomModel.IsPrivate)
                         continue;
 
                     if (request.HasGameId && roomModel.GameId != request.GameId)
@@ -230,22 +239,146 @@ public class RoomsService : Rooms.RoomsBase
                     logger.LogError(ex.ToString());
                 }
             }
-        }catch(Exception ex)
+        }
+        catch (Exception ex)
         {
             logger.LogError(ex.ToString());
         }
-        
+
 
         return reply;
     }
 
-    public override Task<JoinRoomReply> JoinRoom(JoinRoomRequest request, ServerCallContext context)
+    [Authorize(Policy = "OnlyPrivateClient")]
+    public override async Task<AddToRoomReply> AddToRoom(AddToRoomRequest request, ServerCallContext context)
     {
-        return base.JoinRoom(request, context);
+        AddToRoomReply reply = new AddToRoomReply();
+        try
+        {
+            
+            logger.LogInformation($"AddToRoom method;\n Request body: {JsonSerializer.Serialize(request)}");
+            var room = await GetRoomById(request.RoomId);
+            if (room is null)
+            {
+                reply.ErrorMessage = ErrorMessages.RoomIdNotExist;
+                return reply;
+            }
+            if (room.Members.Contains(request.UserId))
+            {
+                reply.ErrorMessage = ErrorMessages.AlreadyInRoom;
+                return reply;
+            }
+            
+            if (room.IsPrivate && room.AccessToken != request.AccessToken)
+            {
+                reply.ErrorMessage = ErrorMessages.NotAllowed;
+                return reply;
+            }
+
+            if (room.CurrentPlayersCount + 1 > room.SelectedPlayerCount)
+            {
+                reply.ErrorMessage = ErrorMessages.RoomIsFull;
+                return reply;
+            }
+            room.Members.Add(request.UserId);
+            await redisDatabase.StringSetAsync(request.RoomId, JsonSerializer.Serialize(room), expiry: TimeSpan.FromHours(roomHoursLifetime));
+            _ = Task.Run(() => OnRoomJoin(room.RoomId, room.GameId, room.CurrentPlayersCount));
+            reply.IsSuccess = true;
+        }
+        catch(Exception ex)
+        {
+            logger.LogInformation(ex.ToString());
+            reply.ErrorMessage = ErrorMessages.InternalServerError;
+        }
+        return reply;
     }
-    public override Task<LeaveRoomReply> LeaveRoom(LeaveRoomRequest request, ServerCallContext context)
+
+    [Authorize(Policy = "OnlyPrivateClient")]
+    public override async Task<GetRoomMembersReply> GetRoomMembers(GetRoomMembersRequest request, ServerCallContext context)
     {
-        return base.LeaveRoom(request, context);
+        GetRoomMembersReply reply = new GetRoomMembersReply();
+        try
+        {
+            var room = await GetRoomById(request.RoomId);
+            if (room is null)
+            {
+                reply.ErrorMessage = ErrorMessages.RoomIdNotExist;
+                return reply;
+            }
+            reply.Members.AddRange(room.Members);
+            reply.IsSuccess = true;
+        }catch(Exception ex)
+        {
+            logger.LogInformation(ex.ToString());
+            reply.ErrorMessage = ErrorMessages.InternalServerError;
+        }
+
+        return reply;
+    }
+
+    [Authorize(Policy = "OnlyPrivateClient")]
+    public override async Task<RemoveFromRoomReply> RemoveFromRoom(RemoveFromRoomRequest request, ServerCallContext context)
+    {
+        RemoveFromRoomReply reply = new RemoveFromRoomReply();
+        try
+        {
+
+            logger.LogInformation($"RemoveFromRoom method;\n Request body: {JsonSerializer.Serialize(request)}");
+            var room = await GetRoomById(request.RoomId);
+            if (room is null)
+            {
+                reply.ErrorMessage = ErrorMessages.RoomIdNotExist;
+                return reply;
+            }
+            if (!room.Members.Contains(request.UserId))
+            {
+                reply.ErrorMessage = ErrorMessages.NotInRoom;
+                return reply;
+            }
+            room.Members.Remove(request.UserId);
+            await redisDatabase.StringSetAsync(request.RoomId, JsonSerializer.Serialize(room), expiry: TimeSpan.FromHours(roomHoursLifetime));
+            _ = Task.Run(()=>OnRoomLeft(room.RoomId, room.GameId, room.CurrentPlayersCount));
+            reply.IsSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogInformation(ex.ToString());
+            reply.ErrorMessage = ErrorMessages.InternalServerError;
+        }
+        return reply;
+    }
+    [Authorize(Policy = "OnlyPrivateClient")]
+    public override async Task<GetRoomReply> GetRoom(GetRoomRequest request, ServerCallContext context)
+    {
+        GetRoomReply reply = new GetRoomReply();
+        try
+        {
+            var room = await GetRoomById(request.RoomId);
+            if (room is null)
+            {
+                reply.ErrorMessage = ErrorMessages.RoomIdNotExist;
+                return reply;
+            }
+            GameRoom replyRoon = new GameRoom()
+            {
+                Creator = room.Creator,
+                CurrentPlayersCount = room.CurrentPlayersCount,
+                GameId = room.GameId,
+                IsPrivate = room.IsPrivate,
+                RoomName = room.RoomName,
+                RoomId = room.RoomId,
+                SelectedPlayersCount = room.SelectedPlayerCount
+            };
+            reply.Room = replyRoon;
+            reply.Members.AddRange(room.Members);
+            reply.IsSuccess = true;
+        }catch(Exception ex)
+        {
+            logger.LogError(ex.ToString());
+            reply.ErrorMessage = ErrorMessages.InternalServerError;
+        }
+
+        return reply;
     }
 
     private async Task<List<string>> GetRoomsIdsList()
@@ -306,6 +439,82 @@ public class RoomsService : Rooms.RoomsBase
         catch (Exception)
         {
             throw;
+        }
+    }
+
+    private async Task OnRoomCreatedEvent(RoomModel room)
+    {
+        try
+        {
+            var clientCombination = await roomsEvents.GetClient();
+            var request = new SharedApiUtils.ServicesAccessing.Protos.OnRoomCreatedRequest()
+            {
+                GameId = room.GameId,
+                RoomId = room.RoomId,
+                RoomName = room.RoomName,
+                SelectedPlayerCount = room.SelectedPlayerCount,
+                Creator = room.Creator,
+            };
+            await clientCombination.client.OnRoomCreatedAsync(request, clientCombination.headers);
+        }
+        catch(Exception ex)
+        {
+            logger.LogError(ex.ToString());
+        }
+
+    }
+    private async Task OnRoomDeleated(string roomId, string gameId)
+    {
+        try
+        {
+            var clientCombination = await roomsEvents.GetClient();
+            var request = new SharedApiUtils.ServicesAccessing.Protos.OnRoomDeleatedRequest()
+            {
+                RoomId = roomId,
+                GameId = gameId,
+            };
+            var reply = await clientCombination.client.OnRoomDeleatedAsync(request, clientCombination.headers);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.ToString());
+        }
+    }
+
+    private async Task OnRoomJoin(string roomId, string gameId, int membersCount)
+    {
+        try
+        {
+            var clientCombination = await roomsEvents.GetClient();
+            var request = new SharedApiUtils.ServicesAccessing.Protos.OnRoomJoinRequest()
+            {
+                RoomId = roomId,
+                GameId = gameId,
+                MembersCount = membersCount
+            };
+            var reply = await clientCombination.client.OnRoomJoinAsync(request, clientCombination.headers);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.ToString());
+        }
+    }
+    private async Task OnRoomLeft(string roomId, string gameId, int membersCount)
+    {
+        try
+        {
+            var clientCombination = await roomsEvents.GetClient();
+            var request = new SharedApiUtils.ServicesAccessing.Protos.OnRoomLeaveRequest()
+            {
+                RoomId = roomId,
+                GameId = gameId,
+                MembersCount = membersCount
+            };
+            var reply = await clientCombination.client.OnRoomLeaveAsync(request, clientCombination.headers);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.ToString());
         }
     }
 }

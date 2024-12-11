@@ -2,6 +2,9 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using RoomsService;
+using SharedApiUtils;
+using SharedApiUtils.ServicesAccessing;
+using SharedApiUtils.ServicesAccessing.Connections;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -83,9 +86,6 @@ builder.Services.AddAuthentication("PrivateClientScheme")
             }
         };
     });
-
-builder.Services.AddScoped<AuthenticationTokenAccessor>();
-builder.Services.AddScoped<GamesServiceConnection>();
 builder.Services.AddScoped<RedisHelper>();
 builder.Services.AddAuthorization(options =>
 {
@@ -120,8 +120,34 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser();
         policy.AuthenticationSchemes.Add("PublicClientScheme");
     });
+    options.AddPolicy("OnlyPrivateClient", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AuthenticationSchemes.Add("PrivateClientScheme");
+    });
 });
 builder.Services.AddGrpc();
+
+builder.Services.AddScoped<AuthenticationTokenAccessor>();
+var accessTokenSection = builder.Configuration.GetRequiredSection("PrivateAccessToken");
+builder.Services.AddSingleton(new TokenAccessorConfiguration()
+{
+    IgnoreSslVerification = accessTokenSection.GetValue<bool>("IgnoreSslVerification"),
+    AuthenticationUrl = accessTokenSection.GetValue<string>("AuthenticationUrl") ?? throw new ArgumentNullException("authentication url is null"),
+    ClientSecret = accessTokenSection.GetValue<string>("ClientSecret") ?? throw new ArgumentNullException("client secret is null"),
+    ClientId = accessTokenSection.GetValue<string>("ClientId") ?? throw new ArgumentNullException("client id is null"),
+    TokenClaim = accessTokenSection.GetValue<string>("TokenClaim") ?? throw new ArgumentNullException("token claim is null")
+});
+builder.Services.AddScoped<GamesServiceConnection>();
+builder.Services.AddScoped<RoomsEventsConnection>();
+var gamesServiceSection = builder.Configuration.GetRequiredSection("ExternalServices");
+builder.Services.AddSingleton(new AccessingConfiguration()
+{
+    IgnoreSslVerification = gamesServiceSection.GetValue<bool>("IgnoreSslVerification"),
+    GamesServiceUrl = gamesServiceSection.GetValue<string>("GamesService") ?? throw new ArgumentNullException("Games service url is null"),
+    WebSocketServiceUrl = gamesServiceSection.GetValue<string>("WebSocketService") ?? throw new ArgumentNullException("Web socket service url is null"),
+    RoomsEventsHandlerUrl = gamesServiceSection.GetValue<string>("WebSocketService") ?? throw new ArgumentNullException("Web socket service url is null")
+});
 
 var app = builder.Build();
 
