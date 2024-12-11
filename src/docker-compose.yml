@@ -27,8 +27,6 @@ services:
         - websocket-service-external-net
         - rating-service-external-net
         - match-history-service-external-net
-    depends_on:
-        - authtentification-server
 
   authtentification-server:
     image: keycloak/keycloak
@@ -87,8 +85,8 @@ services:
   games-service-server:
     image: ${DOCKER_REGISTRY-}gameservice
     build:
-        context: ./Server/Services/GamesService/
-        dockerfile: ./Dockerfile
+        context: ./Server/
+        dockerfile: ./Services/GamesService/Dockerfile
     container_name: GamesService
     environment:
         - "ASPNETCORE_HTTP_PORTS=5247"
@@ -103,8 +101,8 @@ services:
   rooms-service-server:
     image: ${DOCKER_REGISTRY-}roomsservice
     build:
-        context: ./Server/Services/RoomsService/
-        dockerfile: ./Dockerfile
+        context: ./Server/
+        dockerfile: ./Services/RoomsService/Dockerfile
     container_name: RoomsService
     environment:
         - "ASPNETCORE_HTTP_PORTS=5063"
@@ -126,15 +124,25 @@ services:
   web-socket-service-server:
     image: ${DOCKER_REGISTRY-}websocket-service
     build:
-        context: ./Server/Services/WebSocketService/
-        dockerfile: ./Dockerfile
+        context: ./Server/
+        dockerfile: ./Services/WebSocketService/Dockerfile
     container_name: WebSocketService
     environment:
         - "ASPNETCORE_HTTP_PORTS=5059"
     restart: unless-stopped
     networks:
         - websocket-service-external-net
+        - websocket-service-internal-net
         - authtentification-service-external-net
+    ports:
+        - "5059:5059"
+        - "5060:5060" 
+  web-socket-service-database:
+    image: redis
+    container_name: WebSocketServiceDatabase
+    restart: unless-stopped
+    networks:
+        - websocket-service-internal-net
 
   rating-service-database:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -153,8 +161,8 @@ services:
   rating-service-server:
     image: ${DOCKER_REGISTRY-}ratingservice
     build:
-        context: ./Server/Services/RatingService/
-        dockerfile: ./Dockerfile
+        context: ./Server/
+        dockerfile: ./Services/RatingService/Dockerfile
     container_name: RatingService
     environment:
         - "ASPNETCORE_HTTP_PORTS=5263"
@@ -184,8 +192,8 @@ services:
   match-history-service-server:
     image: ${DOCKER_REGISTRY-}matchhistoryservice
     build:
-        context: ./Server/Services/MatchHistoryService/
-        dockerfile: ./Dockerfile
+        context: ./Server/
+        dockerfile: ./Services/MatchHistoryService/Dockerfile
     container_name: MatchHistoryService
     environment:
         - "ASPNETCORE_HTTP_PORTS=5063"
@@ -225,6 +233,9 @@ networks:
     websocket-service-external-net:
         driver:  bridge
         name: WebSocketServiceExternalNetwork
+    websocket-service-internal-net:
+        driver:  bridge
+        name: WebSocketServiceInternalNetwork
     rating-service-internal-net:
         driver: bridge
         name: RatingServiceInternalNetwork
