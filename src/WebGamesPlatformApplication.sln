@@ -29,6 +29,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RatingService", "Server\Ser
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MatchHistoryService", "Server\Services\MatchHistoryService\MatchHistoryService.csproj", "{BF4C3898-5262-41BC-9202-D2EF3C632CE0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharedApiUtils", "Server\SharedApiUtils\SharedApiUtils.csproj", "{7D29BD12-4C49-4EDA-BFB5-0F84024AA0D3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -65,6 +67,10 @@ Global
 		{BF4C3898-5262-41BC-9202-D2EF3C632CE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BF4C3898-5262-41BC-9202-D2EF3C632CE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BF4C3898-5262-41BC-9202-D2EF3C632CE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D29BD12-4C49-4EDA-BFB5-0F84024AA0D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D29BD12-4C49-4EDA-BFB5-0F84024AA0D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D29BD12-4C49-4EDA-BFB5-0F84024AA0D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D29BD12-4C49-4EDA-BFB5-0F84024AA0D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -77,6 +83,7 @@ Global
 		{F5BF099B-E4CB-40E9-942B-739A5215FB49} = {239AA768-5499-4C05-A2AB-9D9C3E820ACE}
 		{96518604-5308-4E65-A272-7487D5CCD873} = {239AA768-5499-4C05-A2AB-9D9C3E820ACE}
 		{BF4C3898-5262-41BC-9202-D2EF3C632CE0} = {239AA768-5499-4C05-A2AB-9D9C3E820ACE}
+		{7D29BD12-4C49-4EDA-BFB5-0F84024AA0D3} = {04804327-2DB6-49AA-8D92-4341DAE43BBB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6AB9FAB0-B9A1-4B9F-99D4-0E28B4FC0B79}
