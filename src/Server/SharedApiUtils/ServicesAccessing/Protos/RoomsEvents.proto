@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option csharp_namespace = "SharedApiUtils.ServicesAccessing.Protos";
+import "google/protobuf/empty.proto";
+
+service RoomsEvents{
+	rpc OnRoomCreated(OnRoomCreatedRequest) returns(google.protobuf.Empty);
+	rpc OnRoomDeleated(OnRoomDeleatedRequest) returns(google.protobuf.Empty);
+	rpc OnRoomJoin(OnRoomJoinRequest) returns (google.protobuf.Empty);
+	rpc OnRoomLeave(OnRoomLeaveRequest) returns (google.protobuf.Empty);
+}
+message OnRoomCreatedRequest{
+	string RoomId = 1;
+	string GameId = 2;
+	string RoomName = 3;
+	string Creator = 4;
+	int32 SelectedPlayerCount = 5;
+}
+message OnRoomDeleatedRequest{
+	string RoomId = 1;
+	string GameId = 2;
+}
+message OnRoomJoinRequest{
+	string RoomId = 1;
+	string GameId = 2;
+	int32 MembersCount = 3;
+}
+message OnRoomLeaveRequest{
+	string RoomId = 1;
+	string GameId = 2;
+	int32 MembersCount = 3;
+}
