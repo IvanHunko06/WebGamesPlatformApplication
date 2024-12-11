@@ -1,0 +1,26 @@
+@media only screen and (max-width: 639px) {
+    .footer-content {
+        flex-direction: column;
+    }
+    .ag-courses-item_title {
+        font-size: 24px;
+    }
+}
+
+.footer-content {
+    max-width: 1200px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .footer-logo {
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+  
+  .footer-socials {
+    display: flex;
+    gap: 1rem;
+  }

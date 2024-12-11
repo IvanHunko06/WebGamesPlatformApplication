@@ -1,0 +1,76 @@
+.leaderboard-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #ffffcc;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    max-width: 800px;
+  }
+  
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden; 
+  }
+  
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid #ccc;
+    font-size: 1rem;
+  }
+  
+  .leaderboard-table th {
+    background-color: #fff9b1;
+    font-weight: 600;
+  }
+  
+  .leaderboard-table tr {
+    position: relative;
+    overflow: hidden; 
+  }
+  .leaderboard-table tr::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%; 
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(247, 236, 115, 0.753), transparent);
+    transform: skewX(-40deg);
+    transition: all 0.3s ease;
+  }
+  
+  @keyframes row-shine {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+  }
+  
+  .leaderboard-table tr:hover::before {
+    animation: row-shine 1s ease-in-out forwards; 
+  }
+  
+  
+  @media (max-width: 480px) {
+    .leaderboard-container {
+        width: 90%;
+        padding: 15px;
+    }
+  
+    .leaderboard-table th,
+    .leaderboard-table td {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+  
+  }
+  
