@@ -1,10 +1,10 @@
 ﻿using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using MatchHistoryService.Protos;
-using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 using MatchHistoryService.Models;
+using MatchHistoryService.Protos;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using SharedApiUtils;
 namespace MatchHistoryService.Services;
 
 public class MatchHistoryService : Protos.MatchesHistory.MatchesHistoryBase
@@ -121,13 +121,7 @@ public class MatchHistoryService : Protos.MatchesHistory.MatchesHistoryBase
         {
             logger.LogError($"Invalid date format in AddMatchInfo: {ex}");
             reply.IsSuccess = false;
-            reply.ErrorMessage = "Invalid date format";
-        }
-        catch (DbUpdateException ex)
-        {
-            logger.LogError($"Database update error in AddMatchInfo: {ex}");
-            reply.IsSuccess = false;
-            reply.ErrorMessage = "Database update error";
+            reply.ErrorMessage = ErrorMessages.InvalidDateFormat;
         }
         catch (Exception ex)
         {
@@ -154,7 +148,7 @@ public class MatchHistoryService : Protos.MatchesHistory.MatchesHistoryBase
             if (match == null)
             {
                 reply.IsSuccess = false;
-                reply.ErrorMessage = "Match not found";
+                reply.ErrorMessage = ErrorMessages.NotFound;
                 return reply;
             }
             dbContext.PlayerScores.RemoveRange(match.MatchMembers);
@@ -162,12 +156,6 @@ public class MatchHistoryService : Protos.MatchesHistory.MatchesHistoryBase
             await dbContext.SaveChangesAsync();
 
             reply.IsSuccess = true;
-        }
-        catch (DbUpdateException ex)
-        {
-            logger.LogError($"Database update error in DeleteMatchInfo: {ex}");
-            reply.IsSuccess = false;
-            reply.ErrorMessage = ErrorMessages.InternalServerError;
         }
         catch (Exception ex)
         {
