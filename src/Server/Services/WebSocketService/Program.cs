@@ -1,13 +1,15 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using SharedApiUtils.ServicesAccessing;
+using SharedApiUtils.ServicesAccessing.Connections;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using WebSocketService;
 using WebSocketService.Hubs;
+using WebSocketService.HubStates;
 using WebSocketService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
 // Add services to the container.
 builder.Services.AddGrpc();
 var auth = builder.Configuration.GetRequiredSection("Authentication");
@@ -119,8 +121,16 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser();
         policy.AuthenticationSchemes.Add("PublicClientScheme");
     });
+    options.AddPolicy("OnlyPrivateClient", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AuthenticationSchemes.Add("PrivateClientScheme");
+    });
 });
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+});
 var configuration = builder.Configuration;
 string[] corsDomains = configuration.GetRequiredSection("CorsDomains").Get<string[]>() ?? throw new ArgumentNullException("Cors domains is null");
 builder.Services.AddCors(options =>
@@ -132,13 +142,53 @@ builder.Services.AddCors(options =>
     .AllowAnyMethod()
     .AllowCredentials());
 });
+
+builder.Services.AddScoped<AuthenticationTokenAccessor>();
+var accessTokenSection = builder.Configuration.GetRequiredSection("PrivateAccessToken");
+builder.Services.AddSingleton(new TokenAccessorConfiguration()
+{
+    IgnoreSslVerification = accessTokenSection.GetValue<bool>("IgnoreSslVerification"),
+    AuthenticationUrl = accessTokenSection.GetValue<string>("AuthenticationUrl") ?? throw new ArgumentNullException("authentication url is null"),
+    ClientSecret = accessTokenSection.GetValue<string>("ClientSecret") ?? throw new ArgumentNullException("client secret is null"),
+    ClientId = accessTokenSection.GetValue<string>("ClientId") ?? throw new ArgumentNullException("client id is null"),
+    TokenClaim = accessTokenSection.GetValue<string>("TokenClaim") ?? throw new ArgumentNullException("token claim is null")
+});
+builder.Services.AddScoped<GamesServiceConnection>();
+builder.Services.AddScoped<RoomsServiceConnection>();
+var externalServicesSection = builder.Configuration.GetRequiredSection("ExternalServices");
+builder.Services.AddSingleton(new AccessingConfiguration()
+{
+    IgnoreSslVerification = externalServicesSection.GetValue<bool>("IgnoreSslVerification"),
+    GamesServiceUrl = externalServicesSection.GetValue<string>("GamesService") ?? throw new ArgumentNullException("Games service url is null"),
+    RoomsServiceUrl = externalServicesSection.GetValue<string>("RoomsService") ?? throw new ArgumentNullException("Rooms service url is null"),
+});
+builder.Services.AddSingleton<GameIdsList>();
+builder.Services.AddSingleton<UserConnectionsList>();
+builder.Services.AddScoped<RedisHelper>();
+builder.Services.AddSingleton<UserConnectionStateService>();
+builder.Services.AddSingleton<RoomSessionHandlerService>();
+builder.Services.AddSingleton<SessionManagmentHubState>();
+
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var redisHelper = services.GetRequiredService<RedisHelper>();
+    var database = redisHelper.GetRedisDatabase();
+    var server = redisHelper.GetRedisServer();
+    await foreach (var key in server.KeysAsync(pattern: "*UserConnections*"))
+    {
+        await database.KeyDeleteAsync(key);
+    }
+}
 app.UseCors("AllowApiGateway");
 app.UseMiddleware<JwtFromUriMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGrpcService<GreeterService>();
+app.MapGrpcService<RoomsEventsService>();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
-app.MapHub<MainHub>("/hubs/main-hub");
+//app.MapHub<MainHub>("/hubs/main-hub");
+app.MapHub<RoomsHub>("/hubs/rooms-hub");
+app.MapHub<SessionManagmentHub>("/hubs/session-managment-hub");
 app.Run();
