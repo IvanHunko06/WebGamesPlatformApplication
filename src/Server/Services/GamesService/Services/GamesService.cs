@@ -1,12 +1,12 @@
 ﻿using GamesService.Models;
-using GamesService.Protos;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
 using SharedApiUtils;
+using SharedApiUtils.ServicesAccessing.Protos;
+using System.Data;
 namespace GamesService.Services;
 
 public class GamesService : Games.GamesBase
