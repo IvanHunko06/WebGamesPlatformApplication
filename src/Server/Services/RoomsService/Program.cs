@@ -2,9 +2,12 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using RoomsService;
-using SharedApiUtils;
+using RoomsService.Repositories;
+using RoomsService.Services;
+using SharedApiUtils.Interfaces;
 using SharedApiUtils.ServicesAccessing;
 using SharedApiUtils.ServicesAccessing.Connections;
+using SharedApiUtils.ServicesClients;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -148,6 +151,12 @@ builder.Services.AddSingleton(new AccessingConfiguration()
     WebSocketServiceUrl = gamesServiceSection.GetValue<string>("WebSocketService") ?? throw new ArgumentNullException("Web socket service url is null"),
     RoomsEventsHandlerUrl = gamesServiceSection.GetValue<string>("WebSocketService") ?? throw new ArgumentNullException("Web socket service url is null")
 });
+builder.Services.AddScoped<RedisRoomRepository>();
+builder.Services.AddScoped<IGamesServiceClient, GamesServiceClient>();
+builder.Services.AddScoped<RoomEventNotifier>();
+builder.Services.AddScoped<RoomValidationService>();
+builder.Services.AddScoped<UserContextService>();
+builder.Services.AddHostedService<RoomCleanupService>();
 
 var app = builder.Build();
 

@@ -20,4 +20,5 @@ public class RoomModel
         }
     }
     public List<string> Members { get; set; } = [];
+    public DateTimeOffset LastModified { get; set; }
 }

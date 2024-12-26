@@ -15,7 +15,6 @@ public class RedisHelper
         string redisConnectionString = configuration.GetConnectionString("Redis") ?? throw new ArgumentNullException("Redis connection string is null");
         var connection = ConnectionMultiplexer.Connect(redisConnectionString);
         redis = connection.GetDatabase();
-        logger.LogInformation($"Connection established with redis via host {redisConnectionString}");
     }
     public IDatabase GetRedisDatabase()
     {
