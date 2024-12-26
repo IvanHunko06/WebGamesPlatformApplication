@@ -8,6 +8,7 @@ import JoinRoomPage from './Pages/JoinRoomPage/JoinRoomPage';
 import { SignalRProvider } from './contexts/SignalRContext';
 import './App.css'
 import RoomPage from './Pages/RoomPage/RoomPage';
+import SessionPage from './Pages/SessionPage/SessionPage';
 function MainApp(){
     return (
         <Router>
@@ -16,6 +17,7 @@ function MainApp(){
                 <Routes>
                     <Route path="/join/:roomId" element={<JoinRoomPage/>}/>
                     <Route path="/room/:roomId" element={<RoomPage/>}/>
+                    <Route path="/session/:sessionId" element={<SessionPage/>}/>
                 </Routes>  
             </SignalRProvider>
             <Routes>

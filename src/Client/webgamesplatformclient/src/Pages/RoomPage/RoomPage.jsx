@@ -1,7 +1,8 @@
-import { useParams, useNavigate, useLocation} from "react-router-dom";
+import { useParams, useNavigate} from "react-router-dom";
 import { useSignalR } from "../../contexts/SignalRContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useCallback, useState } from "react";
+import { jwtDecode } from "jwt-decode";
 const RoomPage = ()=>{
     const {roomId} = useParams();
     const {connect, isConnected, invokeMethod, onMethod} = useSignalR();
@@ -10,30 +11,24 @@ const RoomPage = ()=>{
     const [IsSuccessResponse, SetIsSuccessResponse] = useState(false);
     const [RoomName, SetRoomName] = useState("");
     const [RoomMembers, SetRoomMembers] = useState([]);
-    const location = useLocation();
-    const { connectionLink, reJoinLocalPath} = location.state || {};
+    const [ShowStartButton, SetShowStartButton] = useState(false);
+    const [RoomCreator, SetRoomCreator] = useState("");
     const navigate = useNavigate();
     const getRoom = useCallback(async () => {
         console.log("Get room method executed");
         console.log(String(roomId), typeof roomId);
 
-        let response = {
-            returnValue: undefined,
-            isSuccess: false,
-        };
-        await invokeMethod("GetRoomInformation", response, roomId);
+       
+        let response = await invokeMethod("GetRoomInformation", roomId);
         SetIsRequestRecived(true);
 
         console.log(response);
-        if(response.isSuccess === true && response.returnValue){
+        if(response){
             SetIsSuccessResponse(true);
-            if(response.returnValue.isSuccess === true){
-                SetRoomName(response.returnValue.room.roomName);
-                SetRoomMembers(response.returnValue.members);
-            }
-            else if(response.returnValue.isSuccess === false && response.returnValue.errorMessage == "NOT_ALLOWED"){
-                //console.log("NOT_ALLOWED. Navigate to ", reJoinLocalPath)
-                //navigate(reJoinLocalPath);
+            if(response.isSuccess === true){
+                SetRoomName(response.payload.room.roomName);
+                SetRoomMembers(response.payload.members);
+                SetRoomCreator(response.payload.room.creator);
             }
             else{
                 navigate("/home");
@@ -70,15 +65,41 @@ const RoomPage = ()=>{
             );
     }, []);
 
+    const onGameStarted = useCallback((sessionId)=>{
+        console.log("Game started", sessionId);
+        navigate("/session/"+sessionId);
+    }, [navigate]);
+
     useEffect(() => {
         if (isConnected && !IsRequestRecived) {
             console.log("Connected, calling getRoom...");
             onMethod("AddRoomMember", (member)=>addRoomMember(member));
             onMethod("RemoveRoomMember", (member)=>removeRoomMember(member));
+            onMethod("GameStarted", (sessionId)=>onGameStarted(sessionId));
             getRoom();
         }
-    }, [isConnected, IsRequestRecived, getRoom, onMethod, RoomMembers, addRoomMember, removeRoomMember]);
+    }, [isConnected, IsRequestRecived, getRoom, onMethod, RoomMembers, addRoomMember, removeRoomMember, onGameStarted]);
 
+    useEffect(()=>{
+        const jwtToken = getToken();
+        const decoded = jwtDecode(jwtToken)
+        if(decoded.sub && RoomCreator){
+            if(decoded.sub == RoomCreator){
+                SetShowStartButton(true);
+            }
+            else{
+                SetShowStartButton(false);
+            }
+        }
+        console.log(decoded);
+    }, [getToken, RoomCreator]);
+
+    const startGame = async ()=>{
+        if(isConnected){
+            let response = await invokeMethod("StartGame", roomId);
+            console.log(response);
+        }
+    }
 
 
     return (
@@ -90,10 +111,11 @@ const RoomPage = ()=>{
                 <div className="page">
                     {IsSuccessResponse?(
                         <>
-                            <h1>{connectionLink}</h1>
                             <h1>{RoomName}</h1>
                             <br/>
                             <h1>{RoomMembers}</h1>
+                            {ShowStartButton?<button onClick={startGame}>Start Game</button>:<></>}    
+                            
                         </>
                     ):(
                         <h1>service unavailable</h1>

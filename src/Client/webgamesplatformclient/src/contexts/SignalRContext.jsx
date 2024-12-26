@@ -58,24 +58,20 @@ export const SignalRProvider = ({hubUrl, children}) =>{
         }
     }, [connection, isConnected])
 
-    const invokeMethod = useCallback(async (methodName, response, ...args)=>{
+    const invokeMethod = useCallback(async (methodName, ...args)=>{
+        let response = undefined
         if(isConnected){
-            console.log("Invoke method", methodName);
-            console.log("Args: ", args);
+            console.log("Invoke SignalR method", methodName);
+            console.log("Args: ", args);    
             try{
                 
-                response.returnValue = await connection.invoke(methodName, ...args);
-                response.isSuccess = true;
+                response = await connection.invoke(methodName, ...args);
                 
             }catch(error){
-                response.isSuccess = false;
                 console.error('SignalR connection error:', error);
             }
-
         }
-        else{
-            response.isSuccess = false;
-        }
+        return response;
     }, [connection, isConnected]);
 
     const onMethod = useCallback((methodName, handler)=>{

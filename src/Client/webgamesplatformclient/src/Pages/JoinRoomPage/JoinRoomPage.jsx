@@ -16,20 +16,15 @@ const JoinRoomPage = ()=>{
         console.log(String(roomId), typeof roomId);
         console.log(String(accessToken), typeof accessToken);
 
-        let response = {
-            returnValue: undefined,
-            isSuccess: false,
-        };
-        await invokeMethod("JoinRoom", response, roomId, accessToken ?? "");
+        
+        let response = await invokeMethod("JoinRoom", roomId, accessToken ?? "");
         SetIsRequestRecived(true);
 
         console.log(response);
-        if (response.isSuccess === true && response.returnValue) {
+        if (response) {
             SetIsSuccessResponse(true);
-            if (response.returnValue.isSuccess === true) {
+            if (response.isSuccess === true) {
                 navigate("/room/" + roomId, { state: { connectionLink: window.location.href, reJoinLocalPath: window.location.pathname } });
-            } else if (response.returnValue.isSuccess === false && response.returnValue.errorMessage === "ALREADY_IN_ROOM") {
-                navigate("/home");
             } else {
                 navigate("/home");
             }
