@@ -13,6 +13,7 @@ services:
   nginx-gateway:
     image: nginx
     container_name: "ApiGateway"
+    restart: unless-stopped
     ports:
         - "7005:443"
     volumes:
@@ -27,10 +28,13 @@ services:
         - websocket-service-external-net
         - rating-service-external-net
         - match-history-service-external-net
+        - game-session-service-external-net
+        - processing-services-external-net
 
   authtentification-server:
     image: keycloak/keycloak
     container_name: "AuthtentificationService"
+    restart: unless-stopped
     volumes:
         - ./Volumes/certs/authentification-server:/certs/
         - ./Volumes/certs/api-gateway/apiGateway.crt:/certs/trusted/apiGateway.crt
@@ -134,9 +138,7 @@ services:
         - websocket-service-external-net
         - websocket-service-internal-net
         - authtentification-service-external-net
-    ports:
-        - "5059:5059"
-        - "5060:5060" 
+
   web-socket-service-database:
     image: redis
     container_name: WebSocketServiceDatabase
@@ -205,6 +207,41 @@ services:
         - match-history-service-internal-net
         - match-history-service-external-net
         - authtentification-service-external-net
+  
+  game-session-service-server:
+    image: ${DOCKER_REGISTRY-}gamesessionservice
+    build:
+        context: ./Server/
+        dockerfile: ./Services/GameSessionService/Dockerfile
+    container_name: GameSessionService
+    environment:
+        - "ASPNETCORE_HTTP_PORTS=5087"
+    
+    restart: unless-stopped
+    networks:
+        - game-session-service-external-net
+        - game-session-service-internal-net
+        - authtentification-service-external-net
+  
+  game-session-service-database:
+    image: redis
+    container_name: GameSessionServiceDatabase
+    restart: unless-stopped
+    networks:
+        - game-session-service-internal-net
+  
+  tic-tac-toe-game-processing:
+    image: ${DOCKER_REGISTRY-}tictactoegameprocessing
+    build:
+        context: ./Server/
+        dockerfile: ./Services/GameProcessing/TicTacToeGameProcessing/Dockerfile
+    container_name: TicTacToeGameProcessing
+    environment:
+        - "ASPNETCORE_HTTP_PORTS=5203"
+    restart: unless-stopped
+    networks:
+        - authtentification-service-external-net
+        - processing-services-external-net
 
   
     
@@ -248,4 +285,13 @@ networks:
     match-history-service-external-net:
         driver: bridge
         name: MatchHistoryServiceExternalNetwork
+    game-session-service-external-net:
+        driver: bridge
+        name: GameSessionServiceExternalNetwork
+    game-session-service-internal-net:
+        driver: bridge
+        name: GameSessionServiceInternalNetwork
+    processing-services-external-net:
+        driver: bridge
+        name: ProcessingServicesExternalNetwork
         
