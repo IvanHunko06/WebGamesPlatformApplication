@@ -19,6 +19,8 @@ Server/Services/RoomsService/bin
 Server/Services/RoomsService/obj
 Server/Services/WebSocketService/bin
 Server/Services/WebSocketService/obj
+Server/Services/GameSessionService/bin
+Server/Services/GameSessionService/obj
 
 Server/Services/GameProcessing/TicTacToeGameProcessing/bin
 Server/Services/GameProcessing/TicTacToeGameProcessing/WebSocketService/obj
