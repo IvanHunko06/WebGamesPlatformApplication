@@ -10,14 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Protos\match.proto" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Protobuf Include="Protos\match.proto" GrpcServices="Server" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" Version="2.57.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />

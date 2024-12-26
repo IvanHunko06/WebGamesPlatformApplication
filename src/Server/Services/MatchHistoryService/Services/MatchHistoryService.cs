@@ -1,13 +1,13 @@
 ﻿using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using MatchHistoryService.Models;
-using MatchHistoryService.Protos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using SharedApiUtils.ServicesAccessing.Protos;
 using SharedApiUtils;
 namespace MatchHistoryService.Services;
 
-public class MatchHistoryService : Protos.MatchesHistory.MatchesHistoryBase
+public class MatchHistoryService : MatchesHistory.MatchesHistoryBase
 {
     private readonly ILogger<MatchHistoryService> logger;
     private readonly MatchHistoryDbContext dbContext;
