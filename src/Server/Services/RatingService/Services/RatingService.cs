@@ -3,7 +3,8 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using RatingService.Models;
-using RatingService.Protos;
+using SharedApiUtils;
+using SharedApiUtils.ServicesAccessing.Protos;
 namespace RatingService.Services;
 
 public class RatingService : Rating.RatingBase
@@ -25,10 +26,10 @@ public class RatingService : Rating.RatingBase
         try
         {
             var currentSeasonId = await GetCurrentSeasonId();
-            if(currentSeasonId < 0)
+            if (currentSeasonId < 0)
             {
                 _logger.LogError("No active season found.");
-                return new SetUserScoreResponse { Success = false, ErrorMessage = "SEASON_NOT_FOUND"};
+                return new SetUserScoreResponse { Success = false, ErrorMessage = "SEASON_NOT_FOUND" };
             }
 
             var userScore = await _context.UserScores.FirstOrDefaultAsync(us => us.UserId == request.UserId && us.SeasonId == currentSeasonId);
@@ -55,7 +56,7 @@ public class RatingService : Rating.RatingBase
         catch (Exception ex)
         {
             _logger.LogError($"Error setting user score for userId: {request.UserId}", ex);
-            return new SetUserScoreResponse { Success = false, ErrorMessage = ex.Message};
+            return new SetUserScoreResponse { Success = false, ErrorMessage = ex.Message };
         }
     }
 
@@ -67,7 +68,7 @@ public class RatingService : Rating.RatingBase
         try
         {
             int seasonId = request.SeasonId > 0 ? request.SeasonId : await GetCurrentSeasonId();
-            if(seasonId < 0)
+            if (seasonId < 0)
             {
                 _logger.LogError("No active season found.");
                 return new GetUserScoreResponse()
@@ -77,7 +78,7 @@ public class RatingService : Rating.RatingBase
                 };
             }
             var userScore = await _context.UserScores.AsNoTracking().FirstOrDefaultAsync(us => us.UserId == request.UserId && us.SeasonId == seasonId);
-            if(userScore is null)
+            if (userScore is null)
             {
                 _logger.LogError("User score not found.");
                 return new GetUserScoreResponse()
@@ -88,15 +89,15 @@ public class RatingService : Rating.RatingBase
             }
 
             _logger.LogInformation($"Score retrieved successfully for userId: {request.UserId}");
-            return new GetUserScoreResponse { Score = userScore.Score};
+            return new GetUserScoreResponse { Score = userScore.Score };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving user score for userId: {UserId}", request.UserId);
-            return new GetUserScoreResponse { ErrorMessage = ex.Message};
+            return new GetUserScoreResponse { ErrorMessage = ex.Message };
         }
     }
-    
+
     private async Task<int> GetCurrentSeasonId()
     {
         var season = await _context.Seasons.AsNoTracking().FirstOrDefaultAsync(s => s.DateStart <= DateTime.Now && s.DateEnd >= DateTime.Now);
@@ -116,7 +117,7 @@ public class RatingService : Rating.RatingBase
 
             var scores = await _context.UserScores
                                        .Where(us => us.SeasonId == currentSeasonId)
-                                       .OrderByDescending(us => us.Score)  
+                                       .OrderByDescending(us => us.Score)
                                        .Select(us => new UserScoreEntry { UserId = us.UserId, Score = us.Score })
                                        .ToListAsync();
 
@@ -126,7 +127,7 @@ public class RatingService : Rating.RatingBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving rating list.");
-            return new GetRatingListResponse { ErrorMessage = ex.Message};
+            return new GetRatingListResponse { ErrorMessage = ex.Message };
         }
     }
 
@@ -146,7 +147,7 @@ public class RatingService : Rating.RatingBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving seasons list.");
-            return new GetSeasonsListResponse { ErrorMessage = ex.Message};
+            return new GetSeasonsListResponse { ErrorMessage = ErrorMessages.InternalServerError };
         }
     }
 
