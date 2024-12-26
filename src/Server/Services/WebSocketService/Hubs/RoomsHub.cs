@@ -19,11 +19,11 @@ public class RoomsHub : Hub<IRoomsClient>
         if (gameIdsList.Contains(gameId))
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
-            return new HubActionResult(true, "");
+            return new HubActionResult(true, null, null);
         }
         else
         {
-            return new HubActionResult(false, ErrorMessages.GameIdNotValid);
+            return new HubActionResult(false, ErrorMessages.GameIdNotValid, null);
         }
 
     }

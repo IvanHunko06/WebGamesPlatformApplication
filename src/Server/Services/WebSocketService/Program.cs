@@ -1,12 +1,16 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using SharedApiUtils.Interfaces;
 using SharedApiUtils.ServicesAccessing;
 using SharedApiUtils.ServicesAccessing.Connections;
+using SharedApiUtils.ServicesClients;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using WebSocketService;
 using WebSocketService.Hubs;
 using WebSocketService.HubStates;
+using WebSocketService.Interfaces;
+using WebSocketService.Repositories;
 using WebSocketService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -155,32 +159,38 @@ builder.Services.AddSingleton(new TokenAccessorConfiguration()
 });
 builder.Services.AddScoped<GamesServiceConnection>();
 builder.Services.AddScoped<RoomsServiceConnection>();
+builder.Services.AddScoped<GameSessionConnection>();
 var externalServicesSection = builder.Configuration.GetRequiredSection("ExternalServices");
 builder.Services.AddSingleton(new AccessingConfiguration()
 {
     IgnoreSslVerification = externalServicesSection.GetValue<bool>("IgnoreSslVerification"),
     GamesServiceUrl = externalServicesSection.GetValue<string>("GamesService") ?? throw new ArgumentNullException("Games service url is null"),
     RoomsServiceUrl = externalServicesSection.GetValue<string>("RoomsService") ?? throw new ArgumentNullException("Rooms service url is null"),
+    GameSessionServiceUrl = externalServicesSection.GetValue<string>("GameSessionService") ?? throw new ArgumentNullException("Game session service url is null")
 });
 builder.Services.AddSingleton<GameIdsList>();
-builder.Services.AddSingleton<UserConnectionsList>();
 builder.Services.AddScoped<RedisHelper>();
 builder.Services.AddSingleton<UserConnectionStateService>();
-builder.Services.AddSingleton<RoomSessionHandlerService>();
+builder.Services.AddSingleton<IRoomSessionHandlerService, RoomSessionHandlerService>();
 builder.Services.AddSingleton<SessionManagmentHubState>();
+builder.Services.AddScoped<IUserContextService, UserContextService>();
+builder.Services.AddScoped<IRoomsServiceClient, RoomsServiceClient>();
+builder.Services.AddScoped<IGameSessionServiceClient, GameSessionServiceClient>();
+builder.Services.AddScoped<IServiceInternalRepository, RedisServiceInternalRepository>();
+builder.Services.AddScoped<IGameSessionHandlerService, GameSessionHandlerService>();
 
 var app = builder.Build();
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var redisHelper = services.GetRequiredService<RedisHelper>();
-    var database = redisHelper.GetRedisDatabase();
-    var server = redisHelper.GetRedisServer();
-    await foreach (var key in server.KeysAsync(pattern: "*UserConnections*"))
-    {
-        await database.KeyDeleteAsync(key);
-    }
-}
+//using (var scope = app.Services.CreateScope())
+//{
+//    var services = scope.ServiceProvider;
+//    var redisHelper = services.GetRequiredService<RedisHelper>();
+//    var database = redisHelper.GetRedisDatabase();
+//    var server = redisHelper.GetRedisServer();
+//    await foreach (var key in server.KeysAsync(pattern: "*UserConnections*"))
+//    {
+//        await database.KeyDeleteAsync(key);
+//    }
+//}
 app.UseCors("AllowApiGateway");
 app.UseMiddleware<JwtFromUriMiddleware>();
 app.UseAuthentication();
