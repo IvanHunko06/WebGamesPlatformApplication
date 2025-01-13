@@ -1,14 +1,14 @@
 using GameSessionService;
-using GameSessionService.Interface;
+using GameSessionService.Interfaces;
 using GameSessionService.Repositories;
+using GameSessionService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using SharedApiUtils.Interfaces;
-using SharedApiUtils.ServicesAccessing;
-using SharedApiUtils.ServicesAccessing.Connections;
-using SharedApiUtils.ServicesClients;
+using SharedApiUtils.Abstractons.Interfaces.Clients;
+using SharedApiUtils.gRPC.ServicesAccessing;
+using SharedApiUtils.gRPC.ServicesAccessing.Connections;
+using SharedApiUtils.RabbitMq;
+using SharedApiUtils.RabbitMq.Clients;
 using System.Security.Claims;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 
 var builder = WebApplication.CreateBuilder(args);
 var auth = builder.Configuration.GetRequiredSection("Authentication");
@@ -54,37 +54,32 @@ builder.Services.AddAuthorization(options =>
         policy.AuthenticationSchemes.Add("PrivateClientScheme");
     });
 });
-builder.Services.AddScoped<IGamesServiceClient, GamesServiceClient>();
-builder.Services.AddScoped<IRoomsServiceClient, RoomsServiceClient>();
-builder.Services.AddScoped<RoomsServiceConnection>();
-builder.Services.AddScoped<GamesServiceConnection>();
-builder.Services.AddScoped<AuthenticationTokenAccessor>();
-var accessTokenSection = builder.Configuration.GetRequiredSection("PrivateAccessToken");
-builder.Services.AddSingleton(new TokenAccessorConfiguration()
-{
-    IgnoreSslVerification = accessTokenSection.GetValue<bool>("IgnoreSslVerification"),
-    AuthenticationUrl = accessTokenSection.GetValue<string>("AuthenticationUrl") ?? throw new ArgumentNullException("authentication url is null"),
-    ClientSecret = accessTokenSection.GetValue<string>("ClientSecret") ?? throw new ArgumentNullException("client secret is null"),
-    ClientId = accessTokenSection.GetValue<string>("ClientId") ?? throw new ArgumentNullException("client id is null"),
-    TokenClaim = accessTokenSection.GetValue<string>("TokenClaim") ?? throw new ArgumentNullException("token claim is null")
-});
-var gamesServiceSection = builder.Configuration.GetRequiredSection("ExternalServices");
-builder.Services.AddSingleton(new AccessingConfiguration()
-{
-    IgnoreSslVerification = gamesServiceSection.GetValue<bool>("IgnoreSslVerification"),
-    GamesServiceUrl = gamesServiceSection.GetValue<string>("GamesService") ?? throw new ArgumentNullException("Games service url is null"),
-    RoomsServiceUrl = gamesServiceSection.GetValue<string>("RoomsService") ?? throw new ArgumentNullException("Rooms service url is null"),
-});
+builder.Services.AddScoped<IRoomsServiceClient, RabbitMqRoomsServiceClient>();
 builder.Services.AddScoped<ISessionsRepository, RedisSessionsRepository>();
-builder.Services.AddScoped<IGameProcessingServiceClient, GameProcessingServiceClient>();
+builder.Services.AddScoped<IGameProcessingServiceClient, RabbitMqGameProccessingClient>();
 builder.Services.AddScoped<GameProcessingServiceConnection>();
 builder.Services.AddScoped<RedisHelper>();
 builder.Services.AddGrpc();
+builder.Services.AddSingleton(new RabbitMqConfiguration()
+{
+    Host = builder.Configuration["RabbitMqConfiguration:Host"]!,
+    Username = builder.Configuration["RabbitMqConfiguration:Username"]!,
+    Password = builder.Configuration["RabbitMqConfiguration:Password"]!
+});
+builder.Services.AddSingleton<RabbitMqConnection>();
+builder.Services.AddScoped<IGameSessionService, GameSessionService.Services.GameSessionService>();
+builder.Services.AddSingleton<GameSessionRabbitMqService>();
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var roomsEventListener = services.GetRequiredService<GameSessionRabbitMqService>();
+    await roomsEventListener.StartListening();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
-app.MapGrpcService<GameSessionService.Services.GameSessionService>();
+app.MapGrpcService<GameSessionService.Services.GameSessionRpcService>();
 
 app.Run();

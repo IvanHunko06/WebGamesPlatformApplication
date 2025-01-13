@@ -1,6 +1,6 @@
 ﻿namespace GameSessionService.Models;
 
-public class GameAction
+public class GameActionModel
 {
     public string PlayerId {  get; set; }
     public string ActionType { get; set; }
