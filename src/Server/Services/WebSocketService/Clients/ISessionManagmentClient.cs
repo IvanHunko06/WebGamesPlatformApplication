@@ -9,4 +9,5 @@ public interface ISessionManagmentClient
     Task SessionEnded(string sessionId);
     Task UserReconnects(string userId);
     Task UserReconnected(string userId);
+    Task CloseConnection(string reason);
 }

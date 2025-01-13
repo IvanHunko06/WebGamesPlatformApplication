@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using SharedApiUtils.Interfaces;
-using SharedApiUtils.ServicesAccessing;
-using SharedApiUtils.ServicesAccessing.Connections;
-using SharedApiUtils.ServicesClients;
+using SharedApiUtils.Abstractons.Interfaces.Clients;
+using SharedApiUtils.gRPC.ServicesAccessing;
+using SharedApiUtils.gRPC.ServicesAccessing.Connections;
+using SharedApiUtils.RabbitMq;
+using SharedApiUtils.RabbitMq.Clients;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -148,25 +149,23 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped<AuthenticationTokenAccessor>();
-var accessTokenSection = builder.Configuration.GetRequiredSection("PrivateAccessToken");
 builder.Services.AddSingleton(new TokenAccessorConfiguration()
 {
-    IgnoreSslVerification = accessTokenSection.GetValue<bool>("IgnoreSslVerification"),
-    AuthenticationUrl = accessTokenSection.GetValue<string>("AuthenticationUrl") ?? throw new ArgumentNullException("authentication url is null"),
-    ClientSecret = accessTokenSection.GetValue<string>("ClientSecret") ?? throw new ArgumentNullException("client secret is null"),
-    ClientId = accessTokenSection.GetValue<string>("ClientId") ?? throw new ArgumentNullException("client id is null"),
-    TokenClaim = accessTokenSection.GetValue<string>("TokenClaim") ?? throw new ArgumentNullException("token claim is null")
+    IgnoreSslVerification = bool.Parse(builder.Configuration["PrivateAccessToken:IgnoreSslVerification"]!),
+    AuthenticationUrl = builder.Configuration["PrivateAccessToken:AuthenticationUrl"]!,
+    ClientSecret = builder.Configuration["PrivateAccessToken:ClientSecret"]!,
+    ClientId = builder.Configuration["PrivateAccessToken:ClientId"]!,
+    TokenClaim = builder.Configuration["PrivateAccessToken:TokenClaim"]!
 });
 builder.Services.AddScoped<GamesServiceConnection>();
 builder.Services.AddScoped<RoomsServiceConnection>();
 builder.Services.AddScoped<GameSessionConnection>();
-var externalServicesSection = builder.Configuration.GetRequiredSection("ExternalServices");
 builder.Services.AddSingleton(new AccessingConfiguration()
 {
-    IgnoreSslVerification = externalServicesSection.GetValue<bool>("IgnoreSslVerification"),
-    GamesServiceUrl = externalServicesSection.GetValue<string>("GamesService") ?? throw new ArgumentNullException("Games service url is null"),
-    RoomsServiceUrl = externalServicesSection.GetValue<string>("RoomsService") ?? throw new ArgumentNullException("Rooms service url is null"),
-    GameSessionServiceUrl = externalServicesSection.GetValue<string>("GameSessionService") ?? throw new ArgumentNullException("Game session service url is null")
+    IgnoreSslVerification = bool.Parse(builder.Configuration["ExternalServices:IgnoreSslVerification"]!),
+    GamesServiceUrl = builder.Configuration["ExternalServices:GamesService"]!,
+    RoomsServiceUrl = builder.Configuration["ExternalServices:RoomsService"]!,
+    GameSessionServiceUrl = builder.Configuration["ExternalServices:GameSessionService"]!
 });
 builder.Services.AddSingleton<GameIdsList>();
 builder.Services.AddScoped<RedisHelper>();
@@ -174,31 +173,33 @@ builder.Services.AddSingleton<UserConnectionStateService>();
 builder.Services.AddSingleton<IRoomSessionHandlerService, RoomSessionHandlerService>();
 builder.Services.AddSingleton<SessionManagmentHubState>();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
-builder.Services.AddScoped<IRoomsServiceClient, RoomsServiceClient>();
-builder.Services.AddScoped<IGameSessionServiceClient, GameSessionServiceClient>();
+builder.Services.AddScoped<IRoomsServiceClient, RabbitMqRoomsServiceClient>();
+builder.Services.AddScoped<IGameSessionServiceClient, RabbitMqGameSessionClient>();
 builder.Services.AddScoped<IServiceInternalRepository, RedisServiceInternalRepository>();
 builder.Services.AddScoped<IGameSessionHandlerService, GameSessionHandlerService>();
-
+builder.Services.AddScoped<IRoomSessionHandlerService, RoomSessionHandlerService>();
+builder.Services.AddScoped<IRoomsEventsService, RoomsEventsService>();
+builder.Services.AddSingleton<RoomsEventsRabbitMqListener>();
+builder.Services.AddSingleton(new RabbitMqConfiguration()
+{
+    Host = builder.Configuration["RabbitMqConfiguration:Host"]!,
+    Username = builder.Configuration["RabbitMqConfiguration:Username"]!,
+    Password = builder.Configuration["RabbitMqConfiguration:Password"]!
+});
+builder.Services.AddSingleton<RabbitMqConnection>();
 var app = builder.Build();
-//using (var scope = app.Services.CreateScope())
-//{
-//    var services = scope.ServiceProvider;
-//    var redisHelper = services.GetRequiredService<RedisHelper>();
-//    var database = redisHelper.GetRedisDatabase();
-//    var server = redisHelper.GetRedisServer();
-//    await foreach (var key in server.KeysAsync(pattern: "*UserConnections*"))
-//    {
-//        await database.KeyDeleteAsync(key);
-//    }
-//}
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var roomsEventListener = services.GetRequiredService<RoomsEventsRabbitMqListener>();
+    await roomsEventListener.StartListening();
+}
 app.UseCors("AllowApiGateway");
 app.UseMiddleware<JwtFromUriMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGrpcService<RoomsEventsService>();
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
-//app.MapHub<MainHub>("/hubs/main-hub");
+app.MapGrpcService<RoomsEventsRpcListener>();
 app.MapHub<RoomsHub>("/hubs/rooms-hub");
 app.MapHub<SessionManagmentHub>("/hubs/session-managment-hub");
 app.Run();

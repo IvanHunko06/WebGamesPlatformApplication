@@ -4,7 +4,6 @@ namespace WebSocketService.Services;
 
 public class UserConnectionStateService
 {
-    //private readonly ConcurrentDictionary<string, CancellationTokenSource> _userDisconnectionTokens = new();
     public event Action<string>? OnUserDisconnected;
     public event Action<string>? OnUserConnected;
     private readonly ILogger<UserConnectionStateService> logger;
@@ -44,28 +43,4 @@ public class UserConnectionStateService
             return default;
 
     }
-
-    //private async Task disconnectUserTimer(string userId)
-    //{
-    //    logger.LogInformation($"User {userId} has disconnected");
-    //    var cts = new CancellationTokenSource();
-    //    if(_userDisconnectionTokens.TryAdd(userId, cts))
-    //    {
-    //        try
-    //        {
-    //            await Task.Delay(userReconnectTimeout, cts.Token);
-    //            OnUserDisconnected?.Invoke(userId);
-    //            logger.LogInformation($"OnUserDisconnection event for user {userId} was called");
-    //        }
-    //        catch (TaskCanceledException)
-    //        {
-    //            logger.LogInformation($"User {userId} reconnected within {userReconnectTimeout.ToString()}");
-    //        }
-    //        finally
-    //        {
-    //            _userDisconnectionTokens.TryRemove(userId, out _);
-    //        }
-    //    }
-    //}
-
 }

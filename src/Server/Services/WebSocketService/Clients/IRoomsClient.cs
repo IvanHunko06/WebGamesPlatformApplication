@@ -4,7 +4,7 @@ namespace WebSocketService.Clients;
 
 public interface IRoomsClient
 {
-    Task AddRoom(RoomModel room);
+    Task AddRoom(RoomClientModel room);
     Task RemoveRoom(string roomId);
-    Task UpdateRoom(string roomId, RoomModel room);
+    Task UpdateRoom(string roomId, RoomClientModel room);
 }
