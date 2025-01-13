@@ -16,4 +16,5 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 5247
+EXPOSE 5246
 ENTRYPOINT ["dotnet", "GamesService.dll"]
