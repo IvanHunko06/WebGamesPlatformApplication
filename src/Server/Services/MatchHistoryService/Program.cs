@@ -1,4 +1,6 @@
 using MatchHistoryService;
+using MatchHistoryService.Interfaces;
+using MatchHistoryService.Repositories;
 using MatchHistoryService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -117,7 +119,12 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddGrpc();
 var connectionString = builder.Configuration.GetConnectionString("Database");
 builder.Services.AddDbContext<MatchHistoryDbContext>(options =>
-    options.UseSqlServer(connectionString));
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
+});
+
+builder.Services.AddScoped<IMatchInfoRepository, SqlServerMatchInfoRepository>();
+builder.Services.AddScoped<IMatchHistoryService, MatchHistoryService.Services.MatchHistoryService>();
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -129,7 +136,7 @@ using (var scope = app.Services.CreateScope())
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapGrpcService<MatchHistoryService.Services.MatchHistoryService>();
+app.MapGrpcService<MatchHistoryService.Services.MatchHistoryRpcService>();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
 
 app.Run();

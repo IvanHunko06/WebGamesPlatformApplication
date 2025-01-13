@@ -1,11 +1,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ./Services/MatchHistoryService/MatchHistoryService.csproj ./Services/MatchHistoryService/
-COPY ./SharedApiUtils/SharedApiUtils.csproj ./SharedApiUtils/
+COPY ./SharedApiUtils.Abstractons/SharedApiUtils.Abstractons.csproj ./SharedApiUtils.Abstractons/
+COPY ./SharedApiUtils.gRPC/SharedApiUtils.gRPC.csproj ./SharedApiUtils.gRPC/
 RUN dotnet restore Services/MatchHistoryService/MatchHistoryService.csproj
 
 COPY ./Services/MatchHistoryService/ ./Services/MatchHistoryService/
-COPY ./SharedApiUtils/ ./SharedApiUtils/
+COPY ./SharedApiUtils.Abstractons/ ./SharedApiUtils.Abstractons/
+COPY ./SharedApiUtils.gRPC/ ./SharedApiUtils.gRPC/
 WORKDIR /src/Services/MatchHistoryService
 RUN dotnet publish -c Release -o /app/publish
 
