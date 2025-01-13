@@ -16,8 +16,7 @@ public class RabbitMqRoomsServiceClient : RabbitMqBaseClient, IRoomsServiceClien
 
     public RabbitMqRoomsServiceClient(
         RabbitMqConnection connection, 
-        ILogger<RabbitMqRoomsServiceClient> logger, 
-        RabbitMqMessagePublisher messagePublisher) : base(connection, messagePublisher)
+        ILogger<RabbitMqRoomsServiceClient> logger) : base(connection)
     {
         this.logger = logger;
     }

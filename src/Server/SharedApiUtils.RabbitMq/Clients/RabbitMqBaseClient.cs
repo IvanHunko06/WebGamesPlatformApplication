@@ -9,12 +9,10 @@ namespace SharedApiUtils.RabbitMq.Clients;
 public class RabbitMqBaseClient
 {
     private readonly RabbitMqConnection connection;
-    private readonly RabbitMqMessagePublisher messagePublisher;
 
-    public RabbitMqBaseClient(RabbitMqConnection connection, RabbitMqMessagePublisher messagePublisher)
+    public RabbitMqBaseClient(RabbitMqConnection connection)
     {
         this.connection = connection;
-        this.messagePublisher = messagePublisher;
     }
     public async Task<Resp> SendRequest<Req, Resp>(Req requestBody, string eventName, string routingKey, string exchange = "")
     where Resp : class, new()
@@ -61,7 +59,6 @@ public class RabbitMqBaseClient
             };
 
             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(requestBody));
-            //await messagePublisher.PublishWithRetry(channel, exchange, routingKey, properties, body, 1);
             await channel.BasicPublishAsync(exchange: exchange,
                                                 routingKey: routingKey,
                                                 basicProperties: properties,

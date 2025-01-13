@@ -12,8 +12,7 @@ public class RabbitMqGameProccessingClient : RabbitMqBaseClient, IGameProcessing
 
     public RabbitMqGameProccessingClient(
         ILogger<RabbitMqGameProccessingClient> logger,
-        RabbitMqConnection _connection,
-        RabbitMqMessagePublisher _messagePublisher) : base(_connection, _messagePublisher)
+        RabbitMqConnection _connection) : base(_connection)
     {
         this.logger = logger;
     }
