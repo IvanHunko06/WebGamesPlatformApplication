@@ -36,7 +36,7 @@ public class RatingRpcService : Rating.RatingBase
     }
 
 
-    [Authorize(Policy = "AdminOrPrivateClient")]
+    [Authorize(Policy = "AllAuthenticatedUsers")]
     public override async Task<GetUserScoreReply> GetUserScore(GetUserScoreRequest request, ServerCallContext context)
     {
         var reply = new GetUserScoreReply();
