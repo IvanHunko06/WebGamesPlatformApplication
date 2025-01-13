@@ -3,6 +3,7 @@ using GamesService;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GamesService.Migrations
 {
     [DbContext(typeof(GamesServerDbContext))]
-    partial class GamesServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250112133231_deletedGameLogicServiceUrl")]
+    partial class deletedGameLogicServiceUrl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\SharedApiUtils\SharedApiUtils.csproj" />
+    <ProjectReference Include="..\..\SharedApiUtils.gRPC\SharedApiUtils.gRPC.csproj" />
   </ItemGroup>
 
 </Project>

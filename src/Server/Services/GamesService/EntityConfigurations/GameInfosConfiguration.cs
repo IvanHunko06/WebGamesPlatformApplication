@@ -15,11 +15,6 @@ public class GameInfosConfiguration : IEntityTypeConfiguration<GameInfoEntity>
             .IsUnicode(false)
             .HasMaxLength(100);
 
-        builder.Property(g=>g.GameLogicServerUrl)
-            .IsRequired()
-            .HasMaxLength(100)
-            .IsUnicode(false);
-
         builder.Property(g=>g.LocalizationKey)
             .IsRequired()
             .HasMaxLength(50)

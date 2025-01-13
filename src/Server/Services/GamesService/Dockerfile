@@ -1,11 +1,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ./Services/GamesService/GamesService.csproj ./Services/GamesService/
-COPY ./SharedApiUtils/SharedApiUtils.csproj ./SharedApiUtils/
+COPY ./SharedApiUtils.Abstractons/SharedApiUtils.Abstractons.csproj ./SharedApiUtils.Abstractons/
+COPY ./SharedApiUtils.gRPC/SharedApiUtils.gRPC.csproj ./SharedApiUtils.gRPC/
 RUN dotnet restore Services/GamesService/GamesService.csproj
 
 COPY ./Services/GamesService/ ./Services/GamesService/
-COPY ./SharedApiUtils/ ./SharedApiUtils/
+COPY ./SharedApiUtils.Abstractons/ ./SharedApiUtils.Abstractons/
+COPY ./SharedApiUtils.gRPC/ ./SharedApiUtils.gRPC/
 WORKDIR /src/Services/GamesService
 RUN dotnet publish -c Release -o /app/publish
 

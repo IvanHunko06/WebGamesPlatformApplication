@@ -10,5 +10,4 @@ public class GameInfoEntity
     public bool StaticPlayersCount { get; set; }
     public int MinPlayersCount {  get; set; }
     public int MaxPlayersCount {  get; set; }
-    public string GameLogicServerUrl { get; set; } = string.Empty;
 }

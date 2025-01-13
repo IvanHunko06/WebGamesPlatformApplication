@@ -1,6 +1,8 @@
 //using GamesService.Services;
 
 using GamesService;
+using GamesService.Interfaces;
+using GamesService.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -115,12 +117,14 @@ builder.Services.AddAuthorization(options =>
         policy.AuthenticationSchemes.Add("PrivateClientScheme");
     });
 });
-// Add services to the container.
 builder.Services.AddGrpc();
 builder.Services.AddDbContext<GamesService.GamesServerDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
 });
+builder.Services.AddScoped<IGamesRepository, SqlServerGamesRepository>();
+builder.Services.AddScoped<IGamesService, GamesService.Services.GamesService>();
+
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
@@ -133,5 +137,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
-app.MapGrpcService<GamesService.Services.GamesService>();
+app.MapGrpcService<GamesService.Services.GamesRpcService>();
 app.Run();
