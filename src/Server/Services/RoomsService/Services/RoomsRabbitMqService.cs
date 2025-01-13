@@ -12,12 +12,11 @@ public sealed class RoomsRabbitMqService : BaseRabbitMqRoomsServiceListener
     private readonly ILogger<RoomsRabbitMqService> logger;
     private readonly IRoomsService roomsService;
 
-    public RoomsRabbitMqService(ILogger<RoomsRabbitMqService> logger, 
-        RabbitMqConnection connection, 
-        IRoomsService roomsService, 
-        ILogger<BaseRabbitMqRoomsServiceListener> _logger1, 
-        ILogger<BaseRabbitMqMessageListener> _logger2,  
-        RabbitMqMessagePublisher _messagePublisher) :base(connection, _logger1, _logger2, _messagePublisher)
+    public RoomsRabbitMqService(ILogger<RoomsRabbitMqService> logger,
+        RabbitMqConnection connection,
+        IRoomsService roomsService,
+        ILogger<BaseRabbitMqRoomsServiceListener> _logger1,
+        ILogger<BaseRabbitMqMessageListener> _logger2) : base(connection, _logger1, _logger2)
     {
         this.logger = logger;
         this.roomsService = roomsService;
@@ -28,7 +27,7 @@ public sealed class RoomsRabbitMqService : BaseRabbitMqRoomsServiceListener
         AddToRoomMessageReply reply = new AddToRoomMessageReply();
 
         string? errorMessage = await roomsService.AddUserToRoom(request.RoomId, request.UserId, request.AccessToken);
-        if(string.IsNullOrEmpty(errorMessage))
+        if (string.IsNullOrEmpty(errorMessage))
             reply.IsSuccess = true;
         else
             reply.ErrorMessage = errorMessage;
@@ -42,7 +41,7 @@ public sealed class RoomsRabbitMqService : BaseRabbitMqRoomsServiceListener
         DeleteRoomReply reply = new DeleteRoomReply();
 
         string? errorMessage = await roomsService.DeleteRoom(request.RoomId);
-        if(string.IsNullOrEmpty (errorMessage))
+        if (string.IsNullOrEmpty(errorMessage))
             reply.IsSuccess = true;
         else
             reply.ErrorMessage = errorMessage;
@@ -74,7 +73,7 @@ public sealed class RoomsRabbitMqService : BaseRabbitMqRoomsServiceListener
             RoomName = room.RoomName,
         };
         return reply;
-            
+
 
     }
 
