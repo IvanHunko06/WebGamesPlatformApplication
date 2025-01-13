@@ -1,10 +1,11 @@
 ﻿using RoomManagmentService.Models;
+using RoomsService.Interfaces;
 using StackExchange.Redis;
 using System.Text.Json;
 
 namespace RoomsService.Repositories;
 
-public class RedisRoomRepository
+public class RedisRoomRepository : IRoomRepository
 {
     private readonly ILogger<RedisRoomRepository> logger;
     private readonly IDatabase redisDatabase;
@@ -12,7 +13,7 @@ public class RedisRoomRepository
     {
         this.logger = logger;
         this.redisDatabase = redisHelper.GetRedisDatabase();
-        
+
     }
     public async Task<RoomModel?> GetRoomById(string roomId)
     {
@@ -28,7 +29,7 @@ public class RedisRoomRepository
             return null;
         }
     }
-    public async Task<List<string>> GetRoomsIdsList() 
+    public async Task<List<string>> GetRoomsIdsList()
     {
         try
         {
@@ -83,8 +84,8 @@ public class RedisRoomRepository
             var roomValues = await redisDatabase.StringGetAsync(keys);
 
             var rooms = roomValues
-                .Where(value => value.HasValue) 
-                .Select(value => JsonSerializer.Deserialize<RoomModel>(value!)) // Десериализация
+                .Where(value => value.HasValue)
+                .Select(value => JsonSerializer.Deserialize<RoomModel>(value!))
                 .Where(room => room != null)
                 .ToList();
 

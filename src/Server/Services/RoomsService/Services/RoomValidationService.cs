@@ -1,4 +1,4 @@
-﻿using SharedApiUtils.ServicesAccessing.Protos;
+﻿using SharedApiUtils.Abstractons.Core;
 
 namespace RoomsService.Services;
 
@@ -12,7 +12,7 @@ public class RoomValidationService
         return null;
     }
 
-    public string? ValidatePlayersCount(GameInfo gameInfo, int selectedPlayersCount)
+    public string? ValidatePlayersCount(GameInfoDto gameInfo, int selectedPlayersCount)
     {
         if (!gameInfo.StaticPlayersCount)
         {

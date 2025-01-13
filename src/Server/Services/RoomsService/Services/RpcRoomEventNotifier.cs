@@ -1,20 +1,21 @@
 ﻿using RoomManagmentService.Models;
-using SharedApiUtils.ServicesAccessing.Connections;
-using SharedApiUtils.ServicesAccessing.Protos;
+using RoomsService.Interfaces;
+using SharedApiUtils.gRPC.ServicesAccessing.Connections;
+using SharedApiUtils.gRPC.ServicesAccessing.Protos;
 namespace RoomsService.Services;
 
-public class RoomEventNotifier
+public class RpcRoomEventNotifier : IRoomEventNotifier
 {
     private readonly RoomsEventsConnection roomsEvents;
-    private readonly ILogger<RoomEventNotifier> logger;
+    private readonly ILogger<RpcRoomEventNotifier> logger;
 
-    public RoomEventNotifier(RoomsEventsConnection roomsEvents, ILogger<RoomEventNotifier> logger)
+    public RpcRoomEventNotifier(RoomsEventsConnection roomsEvents, ILogger<RpcRoomEventNotifier> logger)
     {
         this.roomsEvents = roomsEvents;
         this.logger = logger;
     }
 
-    public async Task NotifyRoomCreated(RoomModel room) 
+    public async Task NotifyRoomCreated(RoomModel room)
     {
         try
         {
@@ -22,23 +23,22 @@ public class RoomEventNotifier
             {
                 Creator = room.Creator,
                 CurrentPlayersCount = room.CurrentPlayersCount,
-                SelectedPlayersCount = room.SelectedPlayerCount,
+                SelectedPlayersCount = room.SelectedPlayersCount,
                 GameId = room.GameId,
                 IsPrivate = room.IsPrivate,
                 RoomId = room.RoomId,
                 RoomName = room.RoomName,
             };
             var clientCombination = await roomsEvents.GetClient();
-            var request = new SharedApiUtils.ServicesAccessing.Protos.OnRoomCreatedRequest()
+            var request = new OnRoomCreatedRequest()
             {
                 RoomInfo = roomEventInfo,
             };
-            request.Members.AddRange(room.Members);
             await clientCombination.client.OnRoomCreatedAsync(request, clientCombination.headers);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex.ToString());
+            logger.LogError(ex, "an error occurred while notifying the OnRoomCreated event");
         }
     }
     public async Task NotifyRoomDeleted(RoomModel room)
@@ -49,14 +49,14 @@ public class RoomEventNotifier
             {
                 Creator = room.Creator,
                 CurrentPlayersCount = room.CurrentPlayersCount,
-                SelectedPlayersCount = room.SelectedPlayerCount,
+                SelectedPlayersCount = room.SelectedPlayersCount,
                 GameId = room.GameId,
                 IsPrivate = room.IsPrivate,
                 RoomId = room.RoomId,
                 RoomName = room.RoomName,
             };
             var clientCombination = await roomsEvents.GetClient();
-            var request = new SharedApiUtils.ServicesAccessing.Protos.OnRoomDeleatedRequest()
+            var request = new OnRoomDeleatedRequest()
             {
                 RoomInfo = roomEventInfo
             };
@@ -65,7 +65,7 @@ public class RoomEventNotifier
         }
         catch (Exception ex)
         {
-            logger.LogError(ex.ToString());
+            logger.LogError(ex, "an error occurred while notifying the OnRoomDeleted event");
         }
     }
     public async Task NotifyRoomJoin(RoomModel room, string joinedMember)
@@ -76,14 +76,14 @@ public class RoomEventNotifier
             {
                 Creator = room.Creator,
                 CurrentPlayersCount = room.CurrentPlayersCount,
-                SelectedPlayersCount = room.SelectedPlayerCount,
+                SelectedPlayersCount = room.SelectedPlayersCount,
                 GameId = room.GameId,
                 IsPrivate = room.IsPrivate,
                 RoomId = room.RoomId,
                 RoomName = room.RoomName,
             };
             var clientCombination = await roomsEvents.GetClient();
-            var request = new SharedApiUtils.ServicesAccessing.Protos.OnRoomJoinRequest()
+            var request = new OnRoomJoinRequest()
             {
                 RoomInfo = roomEventInfo,
                 JoinedMember = joinedMember,
@@ -93,10 +93,10 @@ public class RoomEventNotifier
         }
         catch (Exception ex)
         {
-            logger.LogError(ex.ToString());
+            logger.LogError(ex, "an error occurred while notifying the OnRoomJoin event");
         }
     }
-    public async Task NotifyRoomLeave(RoomModel room, string removedMember) 
+    public async Task NotifyRoomLeave(RoomModel room, string removedMember)
     {
         try
         {
@@ -104,14 +104,14 @@ public class RoomEventNotifier
             {
                 Creator = room.Creator,
                 CurrentPlayersCount = room.CurrentPlayersCount,
-                SelectedPlayersCount = room.SelectedPlayerCount,
+                SelectedPlayersCount = room.SelectedPlayersCount,
                 GameId = room.GameId,
                 IsPrivate = room.IsPrivate,
                 RoomId = room.RoomId,
                 RoomName = room.RoomName,
             };
             var clientCombination = await roomsEvents.GetClient();
-            var request = new SharedApiUtils.ServicesAccessing.Protos.OnRoomLeaveRequest()
+            var request = new OnRoomLeaveRequest()
             {
                 RoomInfo = roomEventInfo,
                 RemovedMember = removedMember,
@@ -121,7 +121,7 @@ public class RoomEventNotifier
         }
         catch (Exception ex)
         {
-            logger.LogError(ex.ToString());
+            logger.LogError(ex, "an error occurred while notifying the OnRoomLeave event");
         }
     }
 }
