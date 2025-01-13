@@ -5,6 +5,8 @@ using RatingService;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using RatingService.Interfaces;
+using RatingService.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -119,7 +121,9 @@ builder.Services.AddGrpc();
 
 builder.Services.AddDbContext<RatingDbContext>(options =>
     options.UseSqlServer(connectionString));
-builder.Services.AddHostedService<SeasonService>();
+builder.Services.AddHostedService<SeasonAddService>();
+builder.Services.AddScoped<IRatingRepository, SqlServerRatingRepository>();
+builder.Services.AddScoped<IRatingService, RatingService.Services.RatingService>();
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
@@ -130,7 +134,7 @@ using (var scope = app.Services.CreateScope())
 }
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapGrpcService<RatingService.Services.RatingService>();
+app.MapGrpcService<RatingService.Services.RatingRpcService>();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
 
 app.Run();

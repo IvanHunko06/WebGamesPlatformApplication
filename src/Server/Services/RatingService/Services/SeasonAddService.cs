@@ -1,50 +1,51 @@
-﻿using RatingService.Models;
+﻿using RatingService.Interfaces;
 
 namespace RatingService.Services;
 
-public class SeasonService : BackgroundService
+public class SeasonAddService : BackgroundService
 {
-    private readonly IServiceProvider _serviceProvider;
+    private IRatingService ratingService;
+    private readonly IServiceProvider serviceProvider;
+    private readonly ILogger<SeasonAddService> logger;
 
-    public SeasonService(IServiceProvider serviceProvider)
+    public SeasonAddService(IServiceProvider serviceProvider, ILogger<SeasonAddService> logger)
     {
-        _serviceProvider = serviceProvider;
+        this.serviceProvider = serviceProvider;
+        this.logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        using(var scope = serviceProvider.CreateScope())
         {
-            DateTime currentDate = DateTime.UtcNow;
-            if (currentDate.Day == 1) 
+            ratingService = serviceProvider.GetRequiredService<IRatingService>();
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await AddSeasonForCurrentMonth();
+                await TryAddSeasonForCurrentMonth();
+                await Task.Delay(TimeSpan.FromDays(1), stoppingToken);
             }
-
-            await Task.Delay(TimeSpan.FromDays(1), stoppingToken);
         }
+        
     }
 
-    private async Task AddSeasonForCurrentMonth()
+    private async Task TryAddSeasonForCurrentMonth()
     {
-        using (var scope = _serviceProvider.CreateScope())
+        DateTime now = DateTime.Now;
+        logger.LogInformation($"Trying to add a new season to the current date {now.ToShortDateString()}");
+        DateOnly startDate = new DateOnly(now.Year, now.Month, 1);
+        DateOnly endDate = new DateOnly(startDate.Year, startDate.Month, DateTime.DaysInMonth(startDate.Year, startDate.Month));
+        var currentSeason = ratingService.GetCurrentSeason();
+        if (currentSeason is not null)
         {
-            var dbContext = scope.ServiceProvider.GetRequiredService<RatingDbContext>();
-
-            DateTime now = DateTime.UtcNow;
-            int daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
-
-            DateTime startDate = new DateTime(now.Year, now.Month, 1);
-            DateTime endDate = new DateTime(now.Year, now.Month, daysInMonth); 
-
-            var newSeason = new Season
-            {
-                DateStart = startDate,
-                DateEnd = endDate
-            };
-
-            dbContext.Seasons.Add(newSeason);
-            await dbContext.SaveChangesAsync();
+            logger.LogWarning($"Season for current date {now.ToShortDateString()} exists. Skipping adding");
+            return;
         }
+
+
+        string? errorMessage = await ratingService.AddSeason(startDate, endDate);
+        if (string.IsNullOrEmpty(errorMessage))
+            logger.LogInformation($"New season created. Start date: {startDate.ToShortDateString()} . End date: {endDate.ToShortDateString()}");
+        else
+            logger.LogError($"An error occurred while automatically adding the season. ErrorMessage: {errorMessage}");
     }
 }

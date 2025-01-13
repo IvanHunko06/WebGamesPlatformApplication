@@ -2,11 +2,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ./Services/RatingService/RatingService.csproj ./Services/RatingService/
-COPY ./SharedApiUtils/SharedApiUtils.csproj ./SharedApiUtils/
+COPY ./SharedApiUtils.Abstractons/SharedApiUtils.Abstractons.csproj ./SharedApiUtils.Abstractons/
+COPY ./SharedApiUtils.gRPC/SharedApiUtils.gRPC.csproj ./SharedApiUtils.gRPC/
 RUN dotnet restore Services/RatingService/RatingService.csproj
 
 COPY ./Services/RatingService/ ./Services/RatingService/
-COPY ./SharedApiUtils/ ./SharedApiUtils/
+COPY ./SharedApiUtils.Abstractons/ ./SharedApiUtils.Abstractons/
+COPY ./SharedApiUtils.gRPC/ ./SharedApiUtils.gRPC/
 WORKDIR /src/Services/RatingService
 RUN dotnet publish -c Release -o /app/publish
 
