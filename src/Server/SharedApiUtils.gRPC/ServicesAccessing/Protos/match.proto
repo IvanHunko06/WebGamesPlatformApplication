@@ -1,0 +1,54 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+option csharp_namespace = "SharedApiUtils.gRPC.ServicesAccessing.Protos";
+
+service MatchesHistory {
+  rpc GetMatchesInfo(google.protobuf.Empty) returns (GetMatchesInfoReply);
+  rpc GetMatchesInfoForPlayer(GetMatchesInfoForPlayerRequest) returns (GetMatchesInfoForPlayerReply);
+  rpc AddMatchInfo(MatchInfo) returns (AddMatchInfoReply);
+  rpc DeleteMatchInfo(DeleteMatchInfoRequest) returns (DeleteMatchInfoReply); 
+}
+
+message MatchInfo {
+  string TimeBegin = 1;
+  string TimeEnd = 2;
+  repeated PlayerScore MatchMembers = 3;
+  string FinishReason = 4;
+  string GameId = 5; 
+  optional string RecordId = 6;
+}
+message PlayerScore {
+  string UserId = 1;
+  int32 ScoreDelta = 2;
+}
+message GetMatchesInfoReply {
+  repeated MatchInfo Matches = 1; 
+}
+message GetMatchesInfoForPlayerRequest {
+  string UserId = 1;
+}
+message PlayerMatchInfo {
+  string TimeBegin = 1;
+  string TimeEnd = 2;
+  int32 ScoreDelta = 3;
+  string GameId = 4; 
+}
+message GetMatchesInfoForPlayerReply {
+	bool IsSuccess = 1;
+	optional string ErrorMessage = 2;
+	repeated PlayerMatchInfo Matches = 3; 
+}
+message AddMatchInfoReply {
+  bool IsSuccess = 1;
+  optional string ErrorMessage = 2;
+}
+
+message DeleteMatchInfoRequest {
+  string RecordId = 1; 
+}
+
+message DeleteMatchInfoReply {
+  bool IsSuccess = 1;
+  optional string ErrorMessage = 2;
+}
+

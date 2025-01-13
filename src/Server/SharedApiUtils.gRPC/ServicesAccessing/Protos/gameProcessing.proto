@@ -1,0 +1,29 @@
+﻿syntax = "proto3";
+import "google/protobuf/empty.proto";
+option csharp_namespace = "SharedApiUtils.gRPC.ServicesAccessing.Protos";
+service GameProcessing{
+	rpc InitEmptySessionState (InitEmptySessionStateRequest) returns (InitEmptySessionStateReply);
+	rpc ProccessAction(ProccessActionRequest) returns (ProccessActionReply);
+}
+message InitEmptySessionStateRequest{
+	repeated string Players = 1;
+}
+message InitEmptySessionStateReply{
+	string SessionStateObject = 1;
+}
+message SessionAction{
+	string Action = 1;
+	string PlayerId = 2;
+	optional string Payload = 3;
+}
+message ProccessActionRequest{
+	string SessionStateObject = 1;
+	string Action = 2;
+	string PlayerId = 3;
+	string Payload = 4; 
+}
+message ProccessActionReply{
+	bool IsSuccess = 1;
+	optional string GameErrorMessage = 2;
+	string NewSessionState = 3;
+}

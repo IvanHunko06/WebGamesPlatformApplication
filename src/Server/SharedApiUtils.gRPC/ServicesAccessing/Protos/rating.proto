@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option csharp_namespace = "SharedApiUtils.gRPC.ServicesAccessing.Protos";
+
+service Rating {
+    rpc SetLastSeasonUserScore (SetLastSeasonUserScoreRequest) returns (SetLastSeasonUserScoreReply);
+    rpc GetUserScore (GetUserScoreRequest) returns (GetUserScoreReply);
+    rpc GetSeasonsList (google.protobuf.Empty) returns (GetSeasonsListReply);
+    rpc GetRatingList (GetRatingListRequest) returns (GetRatingListReply);
+}
+
+message SetLastSeasonUserScoreRequest {
+    string UserId = 1;
+    int32 NewScore = 2;
+}
+
+message SetLastSeasonUserScoreReply {
+    bool IsSuccess = 1;
+    optional string ErrorMessage = 2;
+}
+
+
+message GetUserScoreRequest {
+    string UserId = 1;
+    int32 SeasonId = 2;
+}
+
+message GetUserScoreReply {
+    bool IsSuccess = 1;
+    int32 Score = 2;
+    optional string ErrorMessage = 3;
+}
+
+
+
+
+message GetRatingListRequest {
+    int32 SeasonId = 1;
+}
+message GetRatingListReply {
+    repeated UserScoreEntry UserScores = 1;
+}
+
+
+message GetSeasonsListReply {
+    bool IsSuccess = 1;
+    optional string ErrorMessage = 2;
+    repeated SeasonEntry Seasons = 3; 
+}
+
+
+
+
+message UserScoreEntry {
+    string userId = 1;
+    int32 score = 2;
+}
+
+message SeasonEntry {
+    int32 seasonId = 1;
+    string dateStart = 2;
+    string dateEnd = 3;
+}
