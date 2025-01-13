@@ -16,4 +16,5 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 5063
+EXPOSE 5062
 ENTRYPOINT ["dotnet", "MatchHistoryService.dll"]
