@@ -11,4 +11,10 @@ public class UserContextService
         var subjectClaim = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
         return subjectClaim?.Value;
     }
+    public string? GetUserId(HttpContext context)
+    {
+        var user = context.User;
+        var subjectClaim = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        return subjectClaim?.Value;
+    }
 }

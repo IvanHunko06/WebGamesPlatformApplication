@@ -23,7 +23,7 @@ public class RoomsRpcService : Rooms.RoomsBase
         this.userContextService = userContextService;
     }
 
-    [Authorize(Policy = "AllAuthenticatedUsers")]
+    [Authorize(Policy = "OnlyPublicClient")]
     public override async Task<CreateRoomReply> CreateRoom(CreateRoomRequest request, ServerCallContext context)
     {
         CreateRoomReply reply = new CreateRoomReply();
