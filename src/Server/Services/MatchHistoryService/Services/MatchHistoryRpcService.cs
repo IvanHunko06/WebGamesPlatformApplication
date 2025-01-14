@@ -20,7 +20,6 @@ public class MatchHistoryRpcService : MatchesHistory.MatchesHistoryBase
     public override async Task<GetMatchesInfoReply> GetMatchesInfo(Empty request, ServerCallContext context)
     {
         var reply = new GetMatchesInfoReply();
-
         var matchInfos = await matchHistoryService.GetAllRecords();
         if (matchInfos is null)
             return reply;
@@ -58,6 +57,12 @@ public class MatchHistoryRpcService : MatchesHistory.MatchesHistoryBase
             reply.ErrorMessage = ErrorMessages.InternalServerError;
             return reply;
         }
+        if (matchesForUser.Count == 0)
+        {
+            reply.ErrorMessage = ErrorMessages.NotFound;
+            return reply;
+        }
+        
         var matches = matchesForUser.Select(m =>
         {
             return new PlayerMatchInfo()
