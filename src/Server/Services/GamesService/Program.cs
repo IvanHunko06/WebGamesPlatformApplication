@@ -22,7 +22,11 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<GamesServerDbContext>();
-    await context.Database.EnsureCreatedAsync();
+    var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+    if (pendingMigrations.Any())
+    {
+        await context.Database.MigrateAsync();
+    }
 }
 
 app.UseAuthentication();
