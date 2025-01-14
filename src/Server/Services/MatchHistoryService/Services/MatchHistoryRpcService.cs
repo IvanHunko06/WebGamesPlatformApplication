@@ -20,6 +20,7 @@ public class MatchHistoryRpcService : MatchesHistory.MatchesHistoryBase
     public override async Task<GetMatchesInfoReply> GetMatchesInfo(Empty request, ServerCallContext context)
     {
         var reply = new GetMatchesInfoReply();
+
         var matchInfos = await matchHistoryService.GetAllRecords();
         if (matchInfos is null)
             return reply;
