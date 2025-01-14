@@ -10,7 +10,7 @@ public class RatingRpcService : Rating.RatingBase
 {
     private readonly IRatingService ratingService;
 
-    public RatingRpcService(RatingService ratingService)
+    public RatingRpcService(IRatingService ratingService)
     {
 
         this.ratingService = ratingService;
