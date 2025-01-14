@@ -34,7 +34,7 @@ public class SeasonAddService : BackgroundService
         logger.LogInformation($"Trying to add a new season to the current date {now.ToShortDateString()}");
         DateOnly startDate = new DateOnly(now.Year, now.Month, 1);
         DateOnly endDate = new DateOnly(startDate.Year, startDate.Month, DateTime.DaysInMonth(startDate.Year, startDate.Month));
-        var currentSeason = ratingService.GetCurrentSeason();
+        var currentSeason = await ratingService.GetCurrentSeason();
         if (currentSeason is not null)
         {
             logger.LogWarning($"Season for current date {now.ToShortDateString()} exists. Skipping adding");
