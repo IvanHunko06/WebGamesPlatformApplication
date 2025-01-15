@@ -1,11 +1,11 @@
-﻿using RabbitMQ.Client;
+﻿using System.Threading.Channels;
+using RabbitMQ.Client;
 
 namespace SharedApiUtils.RabbitMq;
 
 public class RabbitMqConnection :IDisposable
 {
     private readonly RabbitMqConfiguration configuration;
-    private readonly IChannel channel;
     private readonly IConnection connection;
 
     public RabbitMqConnection(RabbitMqConfiguration configuration)
@@ -18,15 +18,16 @@ public class RabbitMqConnection :IDisposable
             Password = configuration.Password
         };
         connection = factory.CreateConnectionAsync().Result;
-        channel = connection.CreateChannelAsync().Result;
+        
     }
     public void Dispose()
     {
-        channel?.Dispose();
+        
         connection?.Dispose();
     }
-    public IChannel GetChannel()
+    public async Task<IChannel> GetNewChannel()
     {
+        var channel = await connection.CreateChannelAsync();
         return channel;
     }
 }

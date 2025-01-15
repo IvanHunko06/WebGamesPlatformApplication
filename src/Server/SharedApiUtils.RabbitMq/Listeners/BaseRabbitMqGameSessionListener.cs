@@ -20,7 +20,8 @@ public abstract class BaseRabbitMqGameSessionListener : BaseRabbitMqMessageListe
     }
     public async Task StartListening()
     {
-        var channel = connection.GetChannel();
+        var channel = await connection.GetNewChannel();
+        logger.LogDebug($"Using channel {channel.ChannelNumber} for GameSessionListener");
         var queue = await channel.QueueDeclareAsync(
             queue: ServicesQueues.GameSessionServiceQueue,
             durable: true,
@@ -32,7 +33,7 @@ public abstract class BaseRabbitMqGameSessionListener : BaseRabbitMqMessageListe
         RegisterEventListener(RabbitMqEvents.GetGameSession, true, HandleGetGameSession);
         RegisterEventListener(RabbitMqEvents.SendGameEvent, true, HandleSendGameEvent);
         RegisterEventListener(RabbitMqEvents.SyncGameState, true, HandleSyncGameState);
-        await StartBaseListening(false, ServicesQueues.GameSessionServiceQueue);
+        await StartBaseListening(false, ServicesQueues.GameSessionServiceQueue, channel);
     }
     private async Task<(bool ackSuccess, byte[] replyBody)> HandleStartGameSession(byte[] requestBody)
     {

@@ -22,7 +22,8 @@ public abstract class BaseRabbitMqGameProccessingListener : BaseRabbitMqMessageL
     public async Task StartListening(string gameId)
     {
 
-        var channel = connection.GetChannel();
+        var channel = await connection.GetNewChannel();
+        logger.LogDebug($"Using channel {channel.ChannelNumber} for {gameId} game proccessing listener");
         await channel.ExchangeDeclareAsync(ServicesExchanges.GameProccesingExchange, ExchangeType.Direct, true);
         await channel.QueueDeclareAsync($"GameProccessing:{gameId}", false, false, false);
         await channel.QueueBindAsync($"GameProccessing:{gameId}", ServicesExchanges.GameProccesingExchange, gameId);
@@ -30,7 +31,7 @@ public abstract class BaseRabbitMqGameProccessingListener : BaseRabbitMqMessageL
         RegisterEventListener(RabbitMqEvents.GetEmptySessionState, true, HandleGetEmptySessionState);
         RegisterEventListener(RabbitMqEvents.ProccessAction, true, HandleProccessAction);
         RegisterEventListener(RabbitMqEvents.GetGameStateForPlayer, true, HandleGetGameStateForPlayer);
-        await StartBaseListening(false, $"GameProccessing:{gameId}");
+        await StartBaseListening(false, $"GameProccessing:{gameId}", channel);
     }
 
     private async Task<(bool ackSuccess, byte[] replyBody)> HandleGetEmptySessionState(byte[] requestBody)

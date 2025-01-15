@@ -1,10 +1,10 @@
-﻿using RabbitMQ.Client;
+﻿using System.Text;
+using System.Text.Json;
+using RabbitMQ.Client;
 using RoomManagmentService.Models;
 using RoomsService.Interfaces;
 using SharedApiUtils.RabbitMq;
 using SharedApiUtils.RabbitMq.Core.Messages.RoomEvents;
-using System.Text;
-using System.Text.Json;
 
 namespace RoomsService.Services;
 
@@ -12,6 +12,7 @@ public class RabbitmqRoomEventNotifier : IRoomEventNotifier
 {
     private readonly RabbitMqConnection connection;
     private readonly ILogger<RabbitmqRoomEventNotifier> logger;
+    private static IChannel? channel;
 
     public RabbitmqRoomEventNotifier(RabbitMqConnection connection, ILogger<RabbitmqRoomEventNotifier> logger)
     {
@@ -22,7 +23,7 @@ public class RabbitmqRoomEventNotifier : IRoomEventNotifier
     {
         try
         {
-            var channel = connection.GetChannel();
+            channel ??= await connection.GetNewChannel();
             await channel.ExchangeDeclareAsync(exchange: ServicesExchanges.RoomsEventsExchange,
                 type: ExchangeType.Fanout,
                 durable: true);
@@ -60,7 +61,7 @@ public class RabbitmqRoomEventNotifier : IRoomEventNotifier
     {
         try
         {
-            var channel = connection.GetChannel();
+            channel ??= await connection.GetNewChannel();
             await channel.ExchangeDeclareAsync(exchange: ServicesExchanges.RoomsEventsExchange,
                 type: ExchangeType.Fanout,
                 durable: true);
@@ -99,7 +100,7 @@ public class RabbitmqRoomEventNotifier : IRoomEventNotifier
     {
         try
         {
-            var channel = connection.GetChannel();
+            channel ??= await connection.GetNewChannel();
             await channel.ExchangeDeclareAsync(exchange: ServicesExchanges.RoomsEventsExchange,
                 type: ExchangeType.Fanout,
                 durable: true);
@@ -138,7 +139,7 @@ public class RabbitmqRoomEventNotifier : IRoomEventNotifier
     {
         try
         {
-            var channel = connection.GetChannel();
+            channel ??= await connection.GetNewChannel();
             await channel.ExchangeDeclareAsync(exchange: ServicesExchanges.RoomsEventsExchange,
                 type: ExchangeType.Fanout,
                 durable: true);

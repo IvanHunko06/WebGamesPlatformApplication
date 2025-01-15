@@ -12,12 +12,13 @@ public class RabbitMqGameProccessingClient : RabbitMqBaseClient, IGameProcessing
 
     public RabbitMqGameProccessingClient(
         ILogger<RabbitMqGameProccessingClient> logger,
-        RabbitMqConnection _connection) : base(_connection)
+        RabbitMqConnection _connection,
+        ILogger<RabbitMqBaseClient> _logger) : base(_connection, _logger)
     {
         this.logger = logger;
     }
 
-    public async Task<string> GetEmptySessionState(string gameId, IEnumerable<string> players)
+    public async Task<string> GetEmptySessionState(string gameId, List<string> players)
     {
         try
         {
@@ -52,12 +53,12 @@ public class RabbitMqGameProccessingClient : RabbitMqBaseClient, IGameProcessing
         try
         {
             var request = new ProccessActionRequest {Action = action, Payload = payload, SessionState = sessionState, UserId = userId };
-            var reply = await SendRequest<ProccessActionRequest, ProccessActionReply>(request, RabbitMqEvents.GetEmptySessionState, gameId, ServicesExchanges.GameProccesingExchange);
+            var reply = await SendRequest<ProccessActionRequest, ProccessActionReply>(request, RabbitMqEvents.ProccessAction, gameId, ServicesExchanges.GameProccesingExchange);
             return (reply.NewSessionState, reply.GameErrorMessage);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while sending a message to add a user to the room.");
+            logger.LogError(ex, "An error occurred while sending a message to proccess game action.");
             return (sessionState, null);
         }
     }

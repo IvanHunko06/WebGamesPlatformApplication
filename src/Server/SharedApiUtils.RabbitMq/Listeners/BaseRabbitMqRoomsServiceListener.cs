@@ -18,7 +18,8 @@ public abstract class BaseRabbitMqRoomsServiceListener : BaseRabbitMqMessageList
     }
     public async Task StartListening()
     {
-        var channel = connection.GetChannel();
+        var channel = await connection.GetNewChannel();
+        logger.LogDebug($"Using channel {channel.ChannelNumber} for RoomsServiceListener");
         var queue = await channel.QueueDeclareAsync(
             queue: ServicesQueues.RoomsServiceQueue,
             durable: true,
@@ -29,7 +30,7 @@ public abstract class BaseRabbitMqRoomsServiceListener : BaseRabbitMqMessageList
         RegisterEventListener(RabbitMqEvents.RemoveUserFromRoom, true, HandleRemoveFromRoom);
         RegisterEventListener(RabbitMqEvents.DeleteRoom, true, HandleDeleteRoom);
         RegisterEventListener(RabbitMqEvents.GetRoom, true, HandleGetRoom);
-        await StartBaseListening(false, ServicesQueues.RoomsServiceQueue);
+        await StartBaseListening(false, ServicesQueues.RoomsServiceQueue, channel);
     }
     private async Task<(bool ackSuccess, byte[] replyBody)> HandleAddToRoom(byte[] requestBody)
     {

@@ -20,7 +20,8 @@ public abstract class BaseRabbitMqRoomsEventsListener : BaseRabbitMqMessageListe
     }
     public async Task StartListening()
     {
-        var channel = connection.GetChannel();
+        var channel = await connection.GetNewChannel();
+        logger.LogDebug($"Using channel {channel.ChannelNumber} for BaseRabbitMqRoomsEventsListener");
         var queue = await channel.QueueDeclareAsync(queue: "", autoDelete: true, exclusive: true, durable: false);
         await channel.ExchangeDeclareAsync(exchange: ServicesExchanges.RoomsEventsExchange,
                 type: ExchangeType.Fanout,
@@ -31,7 +32,7 @@ public abstract class BaseRabbitMqRoomsEventsListener : BaseRabbitMqMessageListe
         RegisterEventListener(RabbitMqEvents.OnRoomDeleted, false, HandleOnRoomDeleted);
         RegisterEventListener(RabbitMqEvents.OnRoomJoin, false, HandleOnRoomJoin);
         RegisterEventListener(RabbitMqEvents.OnRoomLeave, false, HandleOnRoomLeave);
-        await StartBaseListening(true, queue.QueueName);
+        await StartBaseListening(true, queue.QueueName, channel);
     }
     private async Task<(bool ackSuccess, byte[] replyBody)> HandleOnRoomCreated(byte[] requestBody)
     {

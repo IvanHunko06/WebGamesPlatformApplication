@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using SharedApiUtils.Abstractons;
 using System.Text;
@@ -9,10 +10,12 @@ namespace SharedApiUtils.RabbitMq.Clients;
 public class RabbitMqBaseClient
 {
     private readonly RabbitMqConnection connection;
+    private readonly ILogger<RabbitMqBaseClient> logger;
 
-    public RabbitMqBaseClient(RabbitMqConnection connection)
+    public RabbitMqBaseClient(RabbitMqConnection connection, ILogger<RabbitMqBaseClient> logger)
     {
         this.connection = connection;
+        this.logger = logger;
     }
     public async Task<Resp> SendRequest<Req, Resp>(Req requestBody, string eventName, string routingKey, string exchange = "")
     where Resp : class, new()
@@ -22,13 +25,15 @@ public class RabbitMqBaseClient
         var responseTaskSource = new TaskCompletionSource<Resp>();
         IChannel? channel = null;
         QueueDeclareOk? responseQueue = null;
-        var consumer = new AsyncEventingBasicConsumer(channel);
+        AsyncEventingBasicConsumer? consumer = null;
         async Task OnRecived(object sender, BasicDeliverEventArgs ea)
         {
+            logger.LogDebug($"Message recived to queue: {responseQueue?.QueueName}. CorrelationId: {correlationId}");
             if (ea.BasicProperties.CorrelationId != correlationId) return;
             try
             {
                 var responseBody = Encoding.UTF8.GetString(ea.Body.ToArray());
+                logger.LogDebug($"Response recived. CorrelationId: {correlationId}, EventType: {eventName}, ResponseBody: {responseBody}");
                 var reply = JsonSerializer.Deserialize<Resp>(responseBody);
                 responseTaskSource.TrySetResult(reply ?? new Resp());
             }
@@ -39,10 +44,11 @@ public class RabbitMqBaseClient
         }
         try
         {
-            channel = connection.GetChannel();
+            channel = await connection.GetNewChannel();
             responseQueue = await channel.QueueDeclareAsync(exclusive: true, autoDelete: true);
+            consumer = new AsyncEventingBasicConsumer(channel);
 
-            
+
             consumer.ReceivedAsync += OnRecived;
 
             await channel.BasicConsumeAsync(responseQueue.QueueName, true, consumer);
@@ -59,13 +65,16 @@ public class RabbitMqBaseClient
             };
 
             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(requestBody));
+            logger.LogDebug($"Sending request message via channel {channel.ChannelNumber}. Routing key: {routingKey}, Exchange: {exchange}, " +
+                $"CorrelationId: {correlationId}, EventType: {eventName}, " +
+                $"Response queue: {responseQueue.QueueName}. RequestBody: {JsonSerializer.Serialize(requestBody)}");
             await channel.BasicPublishAsync(exchange: exchange,
                                                 routingKey: routingKey,
                                                 basicProperties: properties,
                                                 body: body,
                                                 mandatory: false);
             var replyTask = responseTaskSource.Task;
-            var waitTask = Task.Delay(TimeSpan.FromSeconds(30));
+            var waitTask = Task.Delay(TimeSpan.FromSeconds(60));
             var firstCompletedTask = await Task.WhenAny(replyTask, waitTask);
             if (firstCompletedTask == waitTask)
                 throw new TimeoutException(ErrorMessages.TimeoutExceeded);
@@ -80,8 +89,13 @@ public class RabbitMqBaseClient
             if (channel is not null && responseQueue is not null)
             {
                 await channel.QueueDeleteAsync(responseQueue.QueueName);
+                logger.LogDebug($"Queue deleted: {responseQueue.QueueName}");
+                
             }
-            consumer.ReceivedAsync -= OnRecived;
+            if(consumer is not null)
+                consumer.ReceivedAsync -= OnRecived;
+
+            channel?.Dispose();
         }
     }
 

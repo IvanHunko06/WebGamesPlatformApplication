@@ -7,12 +7,12 @@ namespace SharedApiUtils.RabbitMq.Clients;
 
 public class RabbitMQGamesServiceClient : IGamesServiceClient
 {
-    private readonly IChannel channel;
+    //private readonly IChannel channel;
     private readonly ILogger<RabbitMQGamesServiceClient> logger;
 
     public RabbitMQGamesServiceClient(RabbitMqConnection rabbitMq, ILogger<RabbitMQGamesServiceClient> logger)
     {
-        channel = rabbitMq.GetChannel();
+        //channel = rabbitMq.GetChannel();
         this.logger = logger;
     }
 

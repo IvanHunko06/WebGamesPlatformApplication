@@ -5,12 +5,13 @@ using System.Text;
 
 namespace SharedApiUtils.RabbitMq.Listeners;
 
-public abstract class BaseRabbitMqMessageListener
+public abstract class BaseRabbitMqMessageListener :IDisposable
 {
     private readonly RabbitMqConnection connection;
     private readonly ILogger<BaseRabbitMqMessageListener> logger;
     private readonly Dictionary<string, EventProccessor> registeredEvents;
     private readonly Dictionary<string, bool> eventNeedReply;
+    private IChannel? channel;
     private bool autoAck;
 
     public delegate Task<(bool ackSuccess, byte[] replyBody)> EventProccessor(byte[] requestBody);
@@ -21,10 +22,14 @@ public abstract class BaseRabbitMqMessageListener
         registeredEvents = new Dictionary<string, EventProccessor>();
         eventNeedReply = new Dictionary<string, bool>();
     }
-
-    internal async Task StartBaseListening(bool autoAck, string queueName)
+    public void Dispose()
     {
-        var channel = connection.GetChannel();
+        channel?.Dispose();
+    }
+    internal async Task StartBaseListening(bool autoAck, string queueName, IChannel channel)
+    {
+        this.channel = channel;
+        logger.LogDebug($"Using channel {channel.ChannelNumber} for queue {queueName}");
         var consumer = new AsyncEventingBasicConsumer(channel);
         this.autoAck = autoAck;
         consumer.ReceivedAsync += Consumer_ReceivedAsync;
@@ -40,20 +45,20 @@ public abstract class BaseRabbitMqMessageListener
 
     private async Task Consumer_ReceivedAsync(object sender, BasicDeliverEventArgs ea)
     {
-        var channel = connection.GetChannel();
+        if (channel is null) return;
         var body = ea.Body.ToArray();
         var props = ea.BasicProperties;
         if (props.Headers is null)
         {
             if (!autoAck)
-                await connection.GetChannel().BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
+                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
             return;
         }
         if (!props.Headers.TryGetValue(WellKnownHeaders.EventType, out object? requestedActionObject) || requestedActionObject is not byte[])
         {
             logger.LogWarning("RabbitMq message does not contain header EventType.");
             if (!autoAck)
-                await connection.GetChannel().BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
+                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
             return;
         }
         string requestedAction = Encoding.UTF8.GetString((byte[])requestedActionObject);
@@ -61,17 +66,18 @@ public abstract class BaseRabbitMqMessageListener
         {
             logger.LogWarning($"RabbitMq event {requestedAction} not registered");
             if (!autoAck)
-                await connection.GetChannel().BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
+                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
             return;
         }
         bool needReply = eventNeedReply[requestedAction];
         if (needReply && (string.IsNullOrEmpty(props.ReplyTo) || string.IsNullOrEmpty(props.CorrelationId)))
         {
-            logger.LogWarning($"ReplyTy or CorrelationId is null");
+            logger.LogWarning($"ReplyTo or CorrelationId is null");
             if (!autoAck)
-                await connection.GetChannel().BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
+                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
             return;
         }
+        logger.LogDebug($"Request reviced. ReplyTo: {props.ReplyTo ?? ""}, CorrelationId: {props.CorrelationId ?? ""}, ActionName: {requestedAction}");
         bool hasException = false;
         bool alreadyConfirmed = false;
         try
@@ -82,6 +88,7 @@ public abstract class BaseRabbitMqMessageListener
             {
                 var replyProps = new BasicProperties();
                 replyProps.CorrelationId = props.CorrelationId;
+                logger.LogDebug($"Sending response to {props.ReplyTo}. CorrelationId: {props.CorrelationId}. Response body: {Encoding.UTF8.GetString(actionResult.replyBody)}");
                 await channel.BasicPublishAsync("", props.ReplyTo, false, replyProps, actionResult.replyBody);
             }
             if (!autoAck)
@@ -115,5 +122,9 @@ public abstract class BaseRabbitMqMessageListener
     {
         registeredEvents[eventName] = eventProccessor;
         eventNeedReply[eventName] = needReply;
+    }
+    internal IChannel? GetChannel()
+    {
+        return channel;
     }
 }

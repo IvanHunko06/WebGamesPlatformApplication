@@ -11,7 +11,8 @@ public class RabbitMqGameSessionClient : RabbitMqBaseClient, IGameSessionService
     private readonly ILogger<RabbitMqGameSessionClient> logger;
     public RabbitMqGameSessionClient(
         ILogger<RabbitMqGameSessionClient> logger,
-        RabbitMqConnection _connection) : base(_connection)
+        RabbitMqConnection _connection,
+        ILogger<RabbitMqBaseClient> _logger) : base(_connection, _logger)
     {
         this.logger = logger;
     }
