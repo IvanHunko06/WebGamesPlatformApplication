@@ -6,8 +6,13 @@ Volumes/
 
 Client/webgamesplatformclient/node_modules
 Client/webgamesplatformclient/obj
-Server/SharedApiUtils/bin
-Server/SharedApiUtils/obj
+
+Server/SharedApiUtils.Abstractons/bin
+Server/SharedApiUtils.Abstractons/obj
+Server/SharedApiUtils.gRPC/bin
+Server/SharedApiUtils.gRPC/obj
+Server/SharedApiUtils.RabbitMq/bin
+Server/SharedApiUtils.RabbitMq/obj
 
 Server/Services/GamesService/bin
 Server/Services/GamesService/obj

@@ -35,12 +35,6 @@ namespace GamesService.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<string>("GameLogicServerUrl")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
                     b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasMaxLength(100)

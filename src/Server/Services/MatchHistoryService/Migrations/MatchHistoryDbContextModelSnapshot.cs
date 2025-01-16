@@ -22,76 +22,87 @@ namespace MatchHistoryService.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("MatchHistoryService.Models.MatchInformation", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("int");
+            modelBuilder.Entity("MatchHistoryService.Entities.MatchInformationEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                b.Property<string>("FinishReason")
-                    .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    b.Property<string>("FinishReason")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
 
-                b.Property<string>("GameId")
-                    .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
 
-                b.Property<DateTime>("TimeBegin")
-                    .HasColumnType("datetime2");
+                    b.Property<Guid>("RecordId")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<DateTime>("TimeEnd")
-                    .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("TimeBegin")
+                        .HasColumnType("datetimeoffset");
 
-                b.HasKey("Id");
+                    b.Property<DateTimeOffset>("TimeEnd")
+                        .HasColumnType("datetimeoffset");
 
-                b.ToTable("MatchInformations");
-            });
+                    b.HasKey("Id");
 
-            modelBuilder.Entity("MatchHistoryService.Models.Score", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("int");
+                    b.HasIndex("RecordId")
+                        .IsUnique();
 
-                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.ToTable("MatchInformations", (string)null);
+                });
 
-                b.Property<bool>("IsWinner")
-                    .HasColumnType("bit");
+            modelBuilder.Entity("MatchHistoryService.Entities.UserScoreEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                b.Property<int>("MatchInfoId")
-                    .HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                b.Property<int>("ScorePoints")
-                    .HasColumnType("int");
+                    b.Property<int>("MatchInfoId")
+                        .HasColumnType("int");
 
-                b.Property<string>("UserId")
-                    .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    b.Property<int>("ScoreDelta")
+                        .HasColumnType("int");
 
-                b.HasKey("Id");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
 
-                b.HasIndex("MatchInfoId");
+                    b.HasKey("Id");
 
-                b.ToTable("PlayerScores");
-            });
+                    b.HasIndex("MatchInfoId");
 
-            modelBuilder.Entity("MatchHistoryService.Models.Score", b =>
-            {
-                b.HasOne("MatchHistoryService.Models.MatchInformation", "MatchInfo")
-                    .WithMany("MatchMembers")
-                    .HasForeignKey("MatchInfoId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+                    b.ToTable("UserScoreDeltas", (string)null);
+                });
 
-                b.Navigation("MatchInfo");
-            });
+            modelBuilder.Entity("MatchHistoryService.Entities.UserScoreEntity", b =>
+                {
+                    b.HasOne("MatchHistoryService.Entities.MatchInformationEntity", "MatchInfo")
+                        .WithMany("UserScores")
+                        .HasForeignKey("MatchInfoId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
-            modelBuilder.Entity("MatchHistoryService.Models.MatchInformation", b =>
-            {
-                b.Navigation("MatchMembers");
-            });
+                    b.Navigation("MatchInfo");
+                });
+
+            modelBuilder.Entity("MatchHistoryService.Entities.MatchInformationEntity", b =>
+                {
+                    b.Navigation("UserScores");
+                });
 #pragma warning restore 612, 618
         }
     }

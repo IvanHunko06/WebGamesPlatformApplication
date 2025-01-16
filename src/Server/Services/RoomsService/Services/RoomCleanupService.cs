@@ -1,4 +1,5 @@
 ﻿
+using RoomsService.Interfaces;
 using RoomsService.Repositories;
 
 namespace RoomsService.Services;
@@ -6,35 +7,29 @@ namespace RoomsService.Services;
 public class RoomCleanupService : BackgroundService
 {
     private readonly ILogger<RoomCleanupService> logger;
-    private readonly RoomEventNotifier roomEventNotifier;
-    private readonly RedisRoomRepository roomRepository;
+    private readonly IRoomsService roomsService;
 
-    public RoomCleanupService(ILogger<RoomCleanupService> logger, RoomEventNotifier roomEventNotifier, RedisRoomRepository roomRepository)
+    public RoomCleanupService(ILogger<RoomCleanupService> logger, IRoomsService roomsService)
     {
         this.logger = logger;
-        this.roomEventNotifier = roomEventNotifier;
-        this.roomRepository = roomRepository;
+        this.roomsService = roomsService;
     }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            var roomIds = await roomRepository.GetRoomsIdsList();
-            foreach(var roomId in roomIds)
+            var rooms = await roomsService.GetRoomsList();
+            foreach (var room in rooms)
             {
-                var room = await roomRepository.GetRoomById(roomId);
-                if (room is null) continue;
-                if(room.Members.Count == 0 && room.LastModified.AddMinutes(2) < DateTimeOffset.UtcNow)
+                if (room.Members.Count == 0 && room.LastModified.AddMinutes(2) < DateTimeOffset.UtcNow)
                 {
                     logger.LogInformation($"Deleting empty room: {room.RoomId}");
-                    await roomRepository.DeleteRoom(roomId);
-                    await roomEventNotifier.NotifyRoomDeleted(room);
+                    await roomsService.DeleteRoom(room.RoomId);
                 }
-                if(room.LastModified.AddHours(12) < DateTimeOffset.UtcNow)
+                if (room.LastModified.AddHours(12) < DateTimeOffset.UtcNow)
                 {
                     logger.LogInformation($"Deleting room after 12 hours: {room.RoomId}");
-                    await roomRepository.DeleteRoom(roomId);
-                    await roomEventNotifier.NotifyRoomDeleted(room);
+                    await roomsService.DeleteRoom(room.RoomId);
                 }
             }
         }

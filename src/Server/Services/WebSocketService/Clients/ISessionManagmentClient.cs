@@ -6,7 +6,6 @@ public interface ISessionManagmentClient
     Task RemoveRoomMember(string member);
     Task GameStarted(string sessionId);
     Task ReciveAction(string action);
-    Task SessionEnded(string sessionId);
-    Task UserReconnects(string userId);
-    Task UserReconnected(string userId);
+    Task SessionEnded(string reason, string? payload);
+    Task CloseConnection(string reason);
 }

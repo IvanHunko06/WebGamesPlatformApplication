@@ -1,5 +1,4 @@
-﻿using SharedApiUtils.ServicesAccessing.Protos;
-using StackExchange.Redis;
+﻿using StackExchange.Redis;
 using WebSocketService.Interfaces;
 
 namespace WebSocketService.Repositories;
@@ -12,7 +11,7 @@ public class RedisServiceInternalRepository : IServiceInternalRepository
     {
         redisDatabase = redisHelper.GetRedisDatabase();
     }
-    
+
     public async Task DeleteUserRoom(string userId)
     {
         try
@@ -30,11 +29,12 @@ public class RedisServiceInternalRepository : IServiceInternalRepository
         {
             string? roomId = await redisDatabase.StringGetAsync($"User{userId}Room");
             return roomId;
-        }catch (Exception)
+        }
+        catch (Exception)
         {
             throw;
         }
-        
+
     }
     public async Task SetUserRoom(string userId, string roomId)
     {
@@ -46,7 +46,7 @@ public class RedisServiceInternalRepository : IServiceInternalRepository
         {
             throw;
         }
-        
+
     }
 
     public async Task SetRoomIsStarted(string roomId, bool isStarted)
@@ -84,14 +84,14 @@ public class RedisServiceInternalRepository : IServiceInternalRepository
         {
             throw;
         }
-        
+
     }
 
     public async Task SetSessionRoom(string sessionId, string roomId)
     {
         try
         {
-            await redisDatabase.StringSetAsync($"Session{sessionId}Room",roomId);
+            await redisDatabase.StringSetAsync($"Session{sessionId}Room", roomId);
             await redisDatabase.StringSetAsync($"Room{roomId}Session", sessionId);
         }
         catch (Exception)
@@ -104,7 +104,7 @@ public class RedisServiceInternalRepository : IServiceInternalRepository
         try
         {
             string? roomId = await redisDatabase.StringGetDeleteAsync($"Session{sessionId}Room");
-            if(!string.IsNullOrEmpty(roomId))
+            if (!string.IsNullOrEmpty(roomId))
                 await redisDatabase.KeyDeleteAsync($"Room{roomId}Session");
         }
         catch (Exception)

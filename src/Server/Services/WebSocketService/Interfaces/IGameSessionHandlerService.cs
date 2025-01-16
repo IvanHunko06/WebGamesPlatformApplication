@@ -7,4 +7,5 @@ public interface IGameSessionHandlerService
     Task<SessionInformation> GetSessionInformation(string sessionId, string userId);
     Task<string> SyncGameState(string sessionId, string userId);
     Task<string?> MakeAction(string playerId, string sessionId, string actionName, string payload);
+    Task EndSession(string sessionId, string reason, string? payload);
 }

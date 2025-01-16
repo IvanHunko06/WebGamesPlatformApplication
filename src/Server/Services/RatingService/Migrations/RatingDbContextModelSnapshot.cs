@@ -22,32 +22,38 @@ namespace RatingService.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("RatingService.Models.Season", b =>
+            modelBuilder.Entity("RatingService.Entities.SeasonEntity", b =>
                 {
-                    b.Property<int>("SeasonId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SeasonId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("DateEnd")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("DateEnd")
+                        .HasColumnType("date");
 
-                    b.Property<DateTime>("DateStart")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("DateStart")
+                        .HasColumnType("date");
 
-                    b.HasKey("SeasonId");
+                    b.HasKey("Id");
 
-                    b.ToTable("Seasons");
+                    b.HasIndex("DateEnd")
+                        .IsUnique();
+
+                    b.HasIndex("DateStart")
+                        .IsUnique();
+
+                    b.ToTable("Seasons", (string)null);
                 });
 
-            modelBuilder.Entity("RatingService.Models.UserScore", b =>
+            modelBuilder.Entity("RatingService.Entities.UserScoreEntity", b =>
                 {
-                    b.Property<int>("UserScoreId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserScoreId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Score")
                         .HasColumnType("int");
@@ -57,27 +63,29 @@ namespace RatingService.Migrations
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
 
-                    b.HasKey("UserScoreId");
+                    b.HasKey("Id");
 
                     b.HasIndex("SeasonId");
 
-                    b.ToTable("UserScores");
+                    b.ToTable("UserScores", (string)null);
                 });
 
-            modelBuilder.Entity("RatingService.Models.UserScore", b =>
+            modelBuilder.Entity("RatingService.Entities.UserScoreEntity", b =>
                 {
-                    b.HasOne("RatingService.Models.Season", "Season")
+                    b.HasOne("RatingService.Entities.SeasonEntity", "Season")
                         .WithMany("UserScores")
                         .HasForeignKey("SeasonId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Season");
                 });
 
-            modelBuilder.Entity("RatingService.Models.Season", b =>
+            modelBuilder.Entity("RatingService.Entities.SeasonEntity", b =>
                 {
                     b.Navigation("UserScores");
                 });

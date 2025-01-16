@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="ServicesAccessing\Protos\gameProcessing.proto" />
+    <None Remove="ServicesAccessing\Protos\games.proto" />
+    <None Remove="ServicesAccessing\Protos\gameSession.proto" />
+    <None Remove="ServicesAccessing\Protos\match.proto" />
+    <None Remove="ServicesAccessing\Protos\rating.proto" />
+    <None Remove="ServicesAccessing\Protos\rooms.proto" />
+    <None Remove="ServicesAccessing\Protos\RoomsEvents.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="ServicesAccessing\Protos\gameProcessing.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.29.2" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.67.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.68.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="ServicesAccessing\Protos\games.proto">
+      <GrpcServices>Both</GrpcServices>
+    </Protobuf>
+    <Protobuf Include="ServicesAccessing\Protos\gameSession.proto" />
+    <Protobuf Include="ServicesAccessing\Protos\match.proto" GrpcServices="Both" />
+    <Protobuf Include="ServicesAccessing\Protos\rating.proto" GrpcServices="Both" />
+    <Protobuf Include="ServicesAccessing\Protos\rooms.proto" GrpcServices="Both" />
+    <Protobuf Include="ServicesAccessing\Protos\RoomsEvents.proto" GrpcServices="Both" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SharedApiUtils.Abstractons\SharedApiUtils.Abstractons.csproj" />
+  </ItemGroup>
+
+</Project>

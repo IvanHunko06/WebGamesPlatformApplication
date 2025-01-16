@@ -11,7 +11,6 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" Version="2.57.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
       <PrivateAssets>all</PrivateAssets>
@@ -26,7 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\SharedApiUtils\SharedApiUtils.csproj" />
+    <ProjectReference Include="..\..\SharedApiUtils.gRPC\SharedApiUtils.gRPC.csproj" />
+    <ProjectReference Include="..\..\SharedApiUtils.RabbitMq\SharedApiUtils.RabbitMq.csproj" />
   </ItemGroup>
 
 </Project>

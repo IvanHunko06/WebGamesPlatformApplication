@@ -1,93 +1,102 @@
-﻿using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
-using SharedApiUtils.ServicesAccessing.Protos;
+﻿using Microsoft.AspNetCore.SignalR;
 using WebSocketService.Clients;
 using WebSocketService.Hubs;
 using WebSocketService.HubStates;
 using WebSocketService.Interfaces;
 using WebSocketService.Models;
+
 namespace WebSocketService.Services;
 
-[Authorize(Policy = "OnlyPrivateClient")]
-public class RoomsEventsService : RoomsEvents.RoomsEventsBase
+public class RoomsEventsService : IRoomsEventsService
 {
-    private readonly IHubContext<RoomsHub, IRoomsClient> roomsHub;
     private readonly ILogger<RoomsEventsService> logger;
     private readonly IHubContext<SessionManagmentHub, ISessionManagmentClient> sessionManagmentHub;
-    private readonly SessionManagmentHubState sessionManagmentHubState;
+    private readonly IHubContext<RoomsHub, IRoomsClient> roomsHub;
     private readonly IServiceInternalRepository serviceInternalRepository;
+    private readonly SessionManagmentHubState sessionManagmentHubState;
 
-    public RoomsEventsService(IHubContext<RoomsHub, IRoomsClient> roomsHub,
+    public RoomsEventsService(
         ILogger<RoomsEventsService> logger,
         IHubContext<SessionManagmentHub, ISessionManagmentClient> sessionManagmentHub,
-        SessionManagmentHubState sessionManagmentHubState,
-        IServiceInternalRepository serviceInternalRepository)
+        IHubContext<RoomsHub, IRoomsClient> roomsHub,
+        IServiceInternalRepository serviceInternalRepository,
+        SessionManagmentHubState sessionManagmentHubState)
     {
-        this.roomsHub = roomsHub;
         this.logger = logger;
         this.sessionManagmentHub = sessionManagmentHub;
-        this.sessionManagmentHubState = sessionManagmentHubState;
+        this.roomsHub = roomsHub;
         this.serviceInternalRepository = serviceInternalRepository;
+        this.sessionManagmentHubState = sessionManagmentHubState;
     }
-    public override async Task<Empty> OnRoomCreated(OnRoomCreatedRequest request, ServerCallContext context)
+    public async Task InvokedOnRoomCreated(RoomModel room)
     {
-        Empty empty = new Empty();
         try
         {
             logger.LogInformation("OnRoomCreated event invoked");
-            if (!request.RoomInfo.IsPrivate)
+            if (room.IsPrivate)
             {
-                RoomModel roomModel = new RoomModel(request.RoomInfo.RoomId, request.RoomInfo.RoomName, request.RoomInfo.Creator, request.RoomInfo.SelectedPlayersCount, 0);
-                _ = Task.Run(() => roomsHub.Clients.Group(request.RoomInfo.GameId).AddRoom(roomModel));
+                RoomClientModel roomModel = new RoomClientModel(room.RoomId, room.RoomName, room.Creator, room.SelectedPlayersCount, 0);
+                _ = Task.Run(() => roomsHub.Clients.Group(room.GameId).AddRoom(roomModel));
             }
-            await serviceInternalRepository.SetRoomIsStarted(request.RoomInfo.RoomId, false);
-        }catch (Exception ex)
+            await serviceInternalRepository.SetRoomIsStarted(room.RoomId, false);
+        }
+        catch (Exception ex)
         {
             logger.LogError(ex, "an error occurred while processing the OnRoomCreated event");
         }
-        
-        return empty;
     }
-    public override async Task<Empty> OnRoomDeleated(OnRoomDeleatedRequest request, ServerCallContext context)
+    public async Task InvokedOnRoomDeleted(RoomModel room)
     {
-        Empty empty = new Empty();
         try
         {
 
             logger.LogInformation("OnRoomDeleated event invoked");
-            if (!request.RoomInfo.IsPrivate)
-                _ = Task.Run(() => roomsHub.Clients.Group(request.RoomInfo.GameId).RemoveRoom(request.RoomInfo.RoomId));
-            await serviceInternalRepository.RemoveRoomIsStarted(request.RoomInfo.RoomId);
-            foreach(var member in request.Members)
+            if (!room.IsPrivate)
+                _ = Task.Run(() => roomsHub.Clients.Group(room.GameId).RemoveRoom(room.RoomId));
+            await serviceInternalRepository.RemoveRoomIsStarted(room.RoomId);
+            foreach (var member in room.Members)
             {
                 await serviceInternalRepository.DeleteUserRoom(member);
                 string? userConnection = sessionManagmentHubState.UserConnections.GetUserConnection(member);
                 if (string.IsNullOrEmpty(userConnection)) continue;
-                await sessionManagmentHub.Groups.RemoveFromGroupAsync(userConnection, request.RoomInfo.RoomId);
+                await sessionManagmentHub.Groups.RemoveFromGroupAsync(userConnection, room.RoomId);
             }
+            string? sessionId = await serviceInternalRepository.GetRoomSession(room.RoomId);
+            if(!string.IsNullOrEmpty(sessionId))
+                await serviceInternalRepository.RemoveSessionRoom(sessionId);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex, "an error occurred while processing the OnRoomDeleated event");
         }
-        return empty;
     }
-    public override Task<Empty> OnRoomJoin(OnRoomJoinRequest request, ServerCallContext context)
+    public Task InvokedOnRoomJoin(RoomModel room, string joinedMember)
     {
-        Empty empty = new Empty();
-        logger.LogInformation("OnRoomJoin event invoked");
-        if (!request.RoomInfo.IsPrivate)
-            _ = Task.Run(() => roomsHub.Clients.Group(request.RoomInfo.GameId).UpdateRoom(request.RoomInfo.RoomId, new RoomModel(null, null, null, null, request.RoomInfo.CurrentPlayersCount)));
-        return Task.FromResult(empty);
+        try
+        {
+            logger.LogInformation("OnRoomJoin event invoked");
+            if (!room.IsPrivate)
+                _ = Task.Run(() => roomsHub.Clients.Group(room.GameId).UpdateRoom(room.RoomId, new RoomClientModel(null, null, null, null, room.Members.Count)));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "an error occurred while processing the OnRoomJoin event");
+        }
+        return Task.CompletedTask;
     }
-    public override Task<Empty> OnRoomLeave(OnRoomLeaveRequest request, ServerCallContext context)
+    public Task InvokedOnRoomLeave(RoomModel room, string deletedMember)
     {
-        Empty empty = new Empty();
-        logger.LogInformation("OnRoomLeave event invoked");
-        if (!request.RoomInfo.IsPrivate)
-            _ = Task.Run(() => roomsHub.Clients.Group(request.RoomInfo.GameId).UpdateRoom(request.RoomInfo.RoomId, new RoomModel(null, null, null, null, request.RoomInfo.CurrentPlayersCount)));
-        return Task.FromResult(empty);
+        try
+        {
+            logger.LogInformation("OnRoomLeave event invoked");
+            if (!room.IsPrivate)
+                _ = Task.Run(() => roomsHub.Clients.Group(room.GameId).UpdateRoom(room.RoomId, new RoomClientModel(null, null, null, null, room.Members.Count)));
+
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "an error occurred while processing the OnRoomLeave event");
+        }
+        return Task.CompletedTask;
     }
 }

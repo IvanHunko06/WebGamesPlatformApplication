@@ -1,153 +1,122 @@
-﻿using GamesService.Models;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
-using Microsoft.AspNetCore.Authorization;
+﻿using Azure.Core;
+using GamesService.Interfaces;
+using GamesService.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using SharedApiUtils;
-using SharedApiUtils.ServicesAccessing.Protos;
-using System.Data;
+using Microsoft.Extensions.Logging;
+using SharedApiUtils.Abstractons;
+using SharedApiUtils.gRPC.ServicesAccessing.Protos;
+
 namespace GamesService.Services;
 
-public class GamesService : Games.GamesBase
+public class GamesService : IGamesService
 {
+    private readonly IGamesRepository gamesRepository;
     private readonly ILogger<GamesService> logger;
-    private readonly GamesServerDbContext dbContext;
 
-    public GamesService(ILogger<GamesService> logger, GamesServerDbContext dbContext)
+    public GamesService(IGamesRepository gamesRepository, ILogger<GamesService> logger)
     {
+        this.gamesRepository = gamesRepository;
         this.logger = logger;
-        this.dbContext = dbContext;
     }
-
-    [Authorize(Policy = "AdminOrPrivateClient")]
-    public override async Task<AddGameReply> AddGame(GameInfo request, ServerCallContext context)
+    public async Task<string?> AddGame(GameInfoModel gameDto)
     {
-        AddGameReply addGameReply = new AddGameReply();
         try
         {
             GameInfoEntity gameInfoEntity = new GameInfoEntity()
             {
-                GameId = request.GameId,
-                GameLogicServerUrl = request.GameLogicServerUrl,
-                ImageUrl = request.ImageUrl,
-                LocalizationKey = request.LocalizationKey,
-                MaxPlayersCount = request.MaxPlayersCount,
-                MinPlayersCount = request.MinPlayersCount,
-                StaticPlayersCount = request.StaticPlayersCount,
-                SupportSinglePlayer = request.SupportSinglePlayer,
+                GameId = gameDto.GameId,
+                ImageUrl = gameDto.ImageUrl,
+                LocalizationKey = gameDto.LocalizationKey,
+                MaxPlayersCount = gameDto.MaxPlayersCount,
+                MinPlayersCount = gameDto.MinPlayersCount,
+                StaticPlayersCount = gameDto.StaticPlayersCount,
+                SupportSinglePlayer = gameDto.SupportSinglePlayer,
             };
-            if (request.StaticPlayersCount) gameInfoEntity.MinPlayersCount = gameInfoEntity.MaxPlayersCount;
-            dbContext.GameInfos.Add(gameInfoEntity);
-            await dbContext.SaveChangesAsync();
-            addGameReply.IsSuccess = true;
+            if (gameDto.StaticPlayersCount) gameInfoEntity.MinPlayersCount = gameInfoEntity.MaxPlayersCount;
+            await gamesRepository.AddGame(gameInfoEntity);
+            return null;
         }
         catch (DbUpdateException ex) when (ex.InnerException is SqlException)
         {
             var exception = (SqlException)ex.InnerException;
             if (exception.Number == 2601 || exception.Number == 2627)
             {
-                addGameReply.IsSuccess = false;
-                addGameReply.ErrorMessage = ErrorMessages.DublicateGameId;
+                return ErrorMessages.DublicateGameId;
             }
             else if (exception.Number == 2628)
             {
-                addGameReply.IsSuccess = false;
-                addGameReply.ErrorMessage = ErrorMessages.PropertyTooLong;
+                return ErrorMessages.PropertyTooLong;
             }
             else
             {
-                addGameReply.IsSuccess = false;
-                addGameReply.ErrorMessage = ErrorMessages.InternalServerError;
+                return ErrorMessages.InternalServerError;
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex.ToString());
-            addGameReply.IsSuccess = false;
-            addGameReply.ErrorMessage = ErrorMessages.InternalServerError;
+            logger.LogError(ex, "an error occurred while adding the game");
+            return ErrorMessages.InternalServerError;
         }
-        return addGameReply;
     }
-
-    [Authorize(Policy = "AdminOrPrivateClient")]
-    public override async Task<DeleteGameReply> DeleteGame(DeleteGameRequest request, ServerCallContext context)
+    public async Task<string?> DeleteGame(string gameId)
     {
-
-        DeleteGameReply deleteGameReply = new DeleteGameReply();
         try
         {
-            await dbContext.GameInfos.Where(g => g.GameId == request.GameId).ExecuteDeleteAsync();
-            deleteGameReply.IsSuccess = true;
+            await gamesRepository.DeleteGame(gameId);
+            return null;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex.ToString());
-            deleteGameReply.IsSuccess = false;
-            deleteGameReply.ErrorMessage = ErrorMessages.InternalServerError;
+            logger.LogError(ex, "an error occurred while deleting the game");
+            return ErrorMessages.InternalServerError;
         }
-
-        return deleteGameReply;
     }
-
-
-    [Authorize(Policy = "AdminOrPrivateClient")]
-    public override async Task<UpdateGameReply> UpdateGame(GameInfo request, ServerCallContext context)
+    public async Task<List<GameInfoModel>?> GetGamesList()
     {
-        UpdateGameReply updateGameReply = new UpdateGameReply();
-
         try
         {
-            await dbContext.GameInfos.Where(g => g.GameId == request.GameId)
-                .ExecuteUpdateAsync(g => g
-                .SetProperty(p => p.GameLogicServerUrl, request.GameLogicServerUrl)
-                .SetProperty(g => g.ImageUrl, request.ImageUrl)
-                .SetProperty(g => g.LocalizationKey, request.LocalizationKey)
-                .SetProperty(g => g.MaxPlayersCount, request.MaxPlayersCount)
-                .SetProperty(g => g.MinPlayersCount, request.MinPlayersCount)
-                .SetProperty(g => g.StaticPlayersCount, request.StaticPlayersCount)
-                .SetProperty(g => g.SupportSinglePlayer, request.SupportSinglePlayer)
-                );
-            updateGameReply.IsSuccess = true;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex.ToString());
-            updateGameReply.IsSuccess = false;
-            updateGameReply.ErrorMessage = ErrorMessages.InternalServerError;
-        }
-        return updateGameReply;
-    }
-
-    [Authorize(Policy = "AllAuthenticatedUsers")]
-    public override async Task<GetGamesListReply> GetGamesList(Empty request, ServerCallContext context)
-    {
-        GetGamesListReply reply = new GetGamesListReply();
-
-        try
-        {
-            var gameInfoEntities = await dbContext.GameInfos.AsNoTracking().ToListAsync();
-            foreach (var gameInfoEntity in gameInfoEntities)
+            var games = (await gamesRepository.GetAllGames()).Select(g =>
             {
-                reply.Games.Add(new GameInfo()
+                return new GameInfoModel()
                 {
-                    GameId = gameInfoEntity.GameId,
-                    GameLogicServerUrl = gameInfoEntity.GameLogicServerUrl,
-                    ImageUrl = gameInfoEntity.ImageUrl,
-                    LocalizationKey = gameInfoEntity.LocalizationKey,
-                    MaxPlayersCount = gameInfoEntity.MaxPlayersCount,
-                    MinPlayersCount = gameInfoEntity.MinPlayersCount,
-                    StaticPlayersCount = gameInfoEntity.StaticPlayersCount,
-                    SupportSinglePlayer = gameInfoEntity.SupportSinglePlayer,
-                });
-            }
+                    GameId = g.GameId,
+                    ImageUrl = g.ImageUrl,
+                    LocalizationKey = g.LocalizationKey,
+                    MaxPlayersCount = g.MaxPlayersCount,
+                    MinPlayersCount = g.MinPlayersCount,
+                    StaticPlayersCount = g.StaticPlayersCount,
+                    SupportSinglePlayer = g.SupportSinglePlayer,
+                };
+            }).ToList();
+            return games;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex.ToString());
+            logger.LogError(ex, "an error occurred while getting the list of games");
+            return null;
         }
-
-
-        return reply;
+    }
+    public async Task<string?> UpdateGame(GameInfoModel gameInfo)
+    {
+        try
+        {
+            await gamesRepository.UpdateGame(new GameInfoEntity()
+            {
+                GameId = gameInfo.GameId,
+                ImageUrl = gameInfo.ImageUrl,
+                LocalizationKey = gameInfo.LocalizationKey,
+                MaxPlayersCount = gameInfo.MaxPlayersCount,
+                MinPlayersCount = gameInfo.MinPlayersCount,
+                StaticPlayersCount = gameInfo.StaticPlayersCount,
+                SupportSinglePlayer = gameInfo.SupportSinglePlayer,
+            });
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "an error occurred while updating the game");
+            return ErrorMessages.InternalServerError;
+        }
     }
 }

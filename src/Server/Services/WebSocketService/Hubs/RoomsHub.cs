@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using SharedApiUtils;
+using SharedApiUtils.Abstractons;
 using WebSocketService.Clients;
 namespace WebSocketService.Hubs;
 

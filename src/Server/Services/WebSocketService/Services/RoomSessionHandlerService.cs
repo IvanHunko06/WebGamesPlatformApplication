@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using SharedApiUtils;
-using SharedApiUtils.Interfaces;
-using SharedApiUtils.ServicesAccessing.Connections;
-using SharedApiUtils.ServicesAccessing.Protos;
-using System.Collections.Concurrent;
+using SharedApiUtils.Abstractons;
+using SharedApiUtils.Abstractons.Core;
+using SharedApiUtils.Abstractons.Interfaces.Clients;
 using WebSocketService.Clients;
 using WebSocketService.Exceptions;
 using WebSocketService.Hubs;
@@ -12,7 +10,7 @@ using WebSocketService.Interfaces;
 
 namespace WebSocketService.Services;
 
-public class RoomSessionHandlerService :IDisposable, IRoomSessionHandlerService
+public class RoomSessionHandlerService : IDisposable, IRoomSessionHandlerService
 {
     private readonly ILogger<RoomSessionHandlerService> logger;
     private readonly IHubContext<SessionManagmentHub, ISessionManagmentClient> hubContext;
@@ -20,14 +18,15 @@ public class RoomSessionHandlerService :IDisposable, IRoomSessionHandlerService
     private readonly IRoomsServiceClient roomsService;
     private readonly IGameSessionServiceClient gameSessionService;
     private readonly IServiceInternalRepository serviceInternalRepository;
-    
+    private readonly IGameSessionHandlerService gameSessionHandlerService;
 
     public RoomSessionHandlerService(ILogger<RoomSessionHandlerService> logger,
         IHubContext<SessionManagmentHub, ISessionManagmentClient> hubContext,
         SessionManagmentHubState hubState,
         IRoomsServiceClient roomsService,
         IGameSessionServiceClient gameSessionService,
-        IServiceInternalRepository serviceInternalRepository)
+        IServiceInternalRepository serviceInternalRepository,
+        IGameSessionHandlerService gameSessionHandlerService)
     {
         this.logger = logger;
         this.hubContext = hubContext;
@@ -35,6 +34,7 @@ public class RoomSessionHandlerService :IDisposable, IRoomSessionHandlerService
         this.roomsService = roomsService;
         this.gameSessionService = gameSessionService;
         this.serviceInternalRepository = serviceInternalRepository;
+        this.gameSessionHandlerService = gameSessionHandlerService;
         hubState.UserConnections.OnUserDisconnected += UserConnections_OnUserDisconnected;
         hubState.UserConnections.OnUserConnected += UserConnections_OnUserConnected;
     }
@@ -42,18 +42,19 @@ public class RoomSessionHandlerService :IDisposable, IRoomSessionHandlerService
     {
         hubState.UserConnections.OnUserDisconnected -= UserConnections_OnUserDisconnected;
         hubState.UserConnections.OnUserConnected -= UserConnections_OnUserConnected;
-    } 
+    }
 
     private async void UserConnections_OnUserConnected(string userId)
     {
         try
         {
             string? roomId = await serviceInternalRepository.GetUserRoom(userId);
-            
-            
+
+
             if (roomId is not null)
-            { bool? roomIsStarted = await serviceInternalRepository.RoomIsStarted(roomId);
-                if (roomIsStarted == true) return; 
+            {
+                bool? roomIsStarted = await serviceInternalRepository.RoomIsStarted(roomId);
+                if (roomIsStarted == true) return;
                 string? userConnection = hubState.UserConnections.GetUserConnection(userId);
                 if (hubState.UserDisconnectionTokens.TryRemove(userId, out var cts))
                 {
@@ -67,11 +68,12 @@ public class RoomSessionHandlerService :IDisposable, IRoomSessionHandlerService
                     logger.LogInformation($"Connection {userConnection} added to group {roomId}");
                 }
             }
-        }catch(Exception ex)
+        }
+        catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred during the OnUserConnected event");
         }
-        
+
     }
 
     private async void UserConnections_OnUserDisconnected(string userId)
@@ -103,11 +105,12 @@ public class RoomSessionHandlerService :IDisposable, IRoomSessionHandlerService
                     hubState.UserDisconnectionTokens.TryRemove(userId, out _);
                 }
             }
-        }catch(Exception ex)
+        }
+        catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred while executing the task of removing a user from a room");
         }
-        
+
     }
 
     public async Task AddToRoom(string userId, string roomId, string accessToken)
@@ -118,14 +121,12 @@ public class RoomSessionHandlerService :IDisposable, IRoomSessionHandlerService
             bool? roomIsStarted = await serviceInternalRepository.RoomIsStarted(roomId);
             if (roomIsStarted is not null && roomIsStarted == true)
                 throw new ErrorMessageException(ErrorMessages.GameInProgress);
-            AddToRoomReply? addToRoomReply = await roomsService.AddToRoom(roomId, userId, accessToken);
-            if (addToRoomReply is null)
-                throw new InternalServerErrorException("Add to room reply is null");
+            string? errorMessage = await roomsService.AddToRoom(roomId, userId, accessToken);
 
-            if (!addToRoomReply.IsSuccess)
-                throw new ErrorMessageException(addToRoomReply.ErrorMessage);
+            if (!string.IsNullOrEmpty(errorMessage))
+                throw new ErrorMessageException(errorMessage);
 
-            _ = Task.Run(() => hubContext.Clients.Group(roomId).AddRoomMember(userId));
+            await hubContext.Clients.Group(roomId).AddRoomMember(userId);
             await serviceInternalRepository.SetUserRoom(userId, roomId);
             string? userConnection = hubState.UserConnections.GetUserConnection(userId);
 
@@ -140,20 +141,17 @@ public class RoomSessionHandlerService :IDisposable, IRoomSessionHandlerService
             logger.LogInformation(ex, "An error occurred while adding a user to the room");
             throw;
         }
-        
+
     }
     public async Task RemoveFromRoom(string userId, string roomId)
     {
         try
         {
-            RemoveFromRoomReply? removeFromRoomReply = await roomsService.RemoveFromRoom(roomId, userId);
-            if (removeFromRoomReply is null)
-                throw new InternalServerErrorException("Remove From Room reply is null");
+            string? errorMessage = await roomsService.RemoveFromRoom(roomId, userId);
 
-            if (!removeFromRoomReply.IsSuccess)
-                throw new ErrorMessageException(removeFromRoomReply.ErrorMessage);
+            if (!string.IsNullOrEmpty(errorMessage))
+                throw new ErrorMessageException(errorMessage);
 
-            //hubState.UsersRooms.TryRemove(userId, out _);
             await serviceInternalRepository.DeleteUserRoom(userId);
             string? userConnection = hubState.UserConnections.GetUserConnection(userId);
 
@@ -162,67 +160,70 @@ public class RoomSessionHandlerService :IDisposable, IRoomSessionHandlerService
                 await hubContext.Groups.RemoveFromGroupAsync(userConnection, roomId);
             }
             _ = Task.Run(() => hubContext.Clients.Group(roomId).RemoveRoomMember(userId));
+            _ = Task.Run(async () =>
+            {
+                string? sessionId = await serviceInternalRepository.GetRoomSession(roomId);
+                if (string.IsNullOrEmpty(sessionId)) return;
+                await gameSessionHandlerService.EndSession(sessionId, EndSessionReason.PlayerDisconnected, userId);
+            });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred while removing the user from the room");
             throw;
         }
-        
+
 
     }
 
-    public async Task<GetRoomReply> GetRoomInformation(string roomId)
+    public async Task<RoomModelDto> GetRoomInformation(string roomId)
     {
         try
         {
-            GetRoomReply? getRoomReply = await roomsService.GetRoom(roomId);
-            if (getRoomReply is null)
+            var getRoomReply = await roomsService.GetRoom(roomId);
+            if (!string.IsNullOrEmpty(getRoomReply.errorMessage))
             {
-                throw new InternalServerErrorException("GetRoom reply is null");
+                throw new ErrorMessageException(getRoomReply.errorMessage);
             }
-            return getRoomReply;
+            return getRoomReply.roomModel;
         }
         catch (Exception ex)
         {
             logger.LogError(ex.ToString());
             throw;
         }
-        
+
     }
 
     public async Task StartGame(string roomId, string userId)
     {
         try
         {
-            GetRoomReply? getRoomReply = await roomsService.GetRoom(roomId);
-            if (getRoomReply is null)
-                throw new NullReferenceException("get room reply is null");
+            var getRoomReply = await roomsService.GetRoom(roomId);
 
-            if (!getRoomReply.IsSuccess)
-                throw new ErrorMessageException(getRoomReply.ErrorMessage);
+            if (!string.IsNullOrEmpty(getRoomReply.errorMessage))
+                throw new ErrorMessageException(getRoomReply.errorMessage);
 
-            if (getRoomReply.Room.Creator != userId)
+            if (getRoomReply.roomModel?.Creator != userId)
                 throw new ErrorMessageException(ErrorMessages.NotAllowed);
 
-            if (getRoomReply.Room.SelectedPlayersCount != getRoomReply.Room.CurrentPlayersCount)
+            if (getRoomReply.roomModel.SelectedPlayerCount != getRoomReply.roomModel.Members.Count)
                 throw new ErrorMessageException(ErrorMessages.RoomIsNotFull);
 
-            var startSessionReply = await gameSessionService.StartGameSession(roomId, getRoomReply.Members);
-            if (startSessionReply is null)
-                throw new NullReferenceException("start session reply is null");
+            var startSessionReply = await gameSessionService.StartGameSession(roomId);
 
-            if (!startSessionReply.IsSuccess)
-                throw new ErrorMessageException(startSessionReply.ErrorMessage);
+            if (!string.IsNullOrEmpty(startSessionReply.errorMessage))
+                throw new ErrorMessageException(startSessionReply.errorMessage);
 
-            await hubContext.Clients.Group(roomId).GameStarted(startSessionReply.SessionId);
+            await hubContext.Clients.Group(roomId).GameStarted(startSessionReply.sessionId ?? "");
             await serviceInternalRepository.SetRoomIsStarted(roomId, true);
-            await serviceInternalRepository.SetSessionRoom(startSessionReply.SessionId, roomId);
-        }catch (Exception ex)
+            await serviceInternalRepository.SetSessionRoom(startSessionReply.sessionId ?? "", roomId);
+        }
+        catch (Exception ex)
         {
             logger.LogError(ex, "an error occurred while starting the game");
             throw;
         }
-        
+
     }
 }

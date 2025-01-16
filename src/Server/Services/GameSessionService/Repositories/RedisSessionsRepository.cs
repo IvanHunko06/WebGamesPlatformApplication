@@ -1,6 +1,4 @@
-﻿using GameSessionService.Interface;
-using GameSessionService.Models;
-using SharedApiUtils.ServicesAccessing.Protos;
+﻿using GameSessionService.Interfaces;
 using StackExchange.Redis;
 using System.Text.Json;
 
@@ -16,7 +14,7 @@ public class RedisSessionsRepository : ISessionsRepository
         redisDatabase = redisHelper.GetRedisDatabase();
         this.logger = logger;
     }
-    public async Task AddOrUpdateSession(Models.GameSession session)
+    public async Task AddOrUpdateSession(Models.GameSessionModel session)
     {
         try
         {
@@ -29,13 +27,13 @@ public class RedisSessionsRepository : ISessionsRepository
             throw;
         }
     }
-    public async Task<Models.GameSession?> GetSessionById(string sessionId)
+    public async Task<Models.GameSessionModel?> GetSessionById(string sessionId)
     {
         try
         {
             if (!await redisDatabase.KeyExistsAsync(sessionId)) return null;
             var sessionJson = await redisDatabase.StringGetAsync(sessionId);
-            return sessionJson.HasValue ? JsonSerializer.Deserialize<Models.GameSession>(sessionJson) : null;
+            return sessionJson.HasValue ? JsonSerializer.Deserialize<Models.GameSessionModel>(sessionJson) : null;
         }
         catch (Exception ex)
         {
@@ -70,14 +68,14 @@ public class RedisSessionsRepository : ISessionsRepository
             return new List<string>();
         }
     }
-    public async Task<List<Models.GameSession>> GetSessionsList()
+    public async Task<List<Models.GameSessionModel>> GetSessionsList()
     {
         try
         {
             var roomIds = await redisDatabase.SetMembersAsync("SessionsIds");
             if (roomIds.Length == 0)
             {
-                return new List<Models.GameSession>();
+                return new List<Models.GameSessionModel>();
             }
 
             var keys = roomIds.Select(id => (RedisKey)id.ToString()).ToArray();
@@ -85,7 +83,7 @@ public class RedisSessionsRepository : ISessionsRepository
 
             var rooms = roomValues
                 .Where(value => value.HasValue)
-                .Select(value => JsonSerializer.Deserialize<Models.GameSession>(value!))
+                .Select(value => JsonSerializer.Deserialize<Models.GameSessionModel>(value!))
                 .Where(room => room != null)
                 .ToList();
 
@@ -94,7 +92,7 @@ public class RedisSessionsRepository : ISessionsRepository
         catch (Exception ex)
         {
             logger.LogError(ex, "Error retrieving session list.");
-            return new List<Models.GameSession>();
+            return new List<Models.GameSessionModel>();
         }
     }
 

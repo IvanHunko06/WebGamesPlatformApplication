@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using SharedApiUtils.RabbitMq;
 using System.Security.Claims;
+using TicTacToeGameProcessing.Interfaces;
 using TicTacToeGameProcessing.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -48,12 +50,27 @@ builder.Services.AddAuthorization(options =>
     });
 });
 builder.Services.AddGrpc();
+builder.Services.AddScoped<ITicTacToeGameProcessingService, TicTacToeGameProcessingService>();
 builder.Services.AddSingleton<Random>();
+builder.Services.AddSingleton(new RabbitMqConfiguration()
+{
+    Host = builder.Configuration["RabbitMqConfiguration:Host"]!,
+    Username = builder.Configuration["RabbitMqConfiguration:Username"]!,
+    Password = builder.Configuration["RabbitMqConfiguration:Password"]!
+});
+builder.Services.AddSingleton<RabbitMqConnection>();
+builder.Services.AddSingleton<TicTacToeGameProccessingRabbitMqService>();
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var roomsEventListener = services.GetRequiredService<TicTacToeGameProccessingRabbitMqService>();
+    await roomsEventListener.StartListening("tictactoe");
+}
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapGrpcService<TicTacToeGameProcessingService>();
+app.MapGrpcService<TicTacToeGameProcessingRpcService>();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
 
 app.Run();

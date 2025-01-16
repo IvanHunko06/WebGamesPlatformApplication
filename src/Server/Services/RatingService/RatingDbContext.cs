@@ -1,17 +1,21 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using RatingService.Models;
+using RatingService.Entities;
+using RatingService.EntitiesConfigurations;
 
-namespace RatingService
+namespace RatingService;
+
+public class RatingDbContext : DbContext
 {
-    public class RatingDbContext : DbContext
+    public RatingDbContext(DbContextOptions<RatingDbContext> options) :
+        base(options)
     {
-        public RatingDbContext(DbContextOptions<RatingDbContext> options) :
-            base(options)
-        {
-        }
-
-        public DbSet<Season> Seasons { get; set; }
-        public DbSet<UserScore> UserScores { get; set; }
     }
 
+    public DbSet<SeasonEntity> Seasons { get; set; }
+    public DbSet<UserScoreEntity> UserScores { get; set; }
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfiguration(new SeasonEntityConfiguration());
+        modelBuilder.ApplyConfiguration(new UserScoreEntityConfiguration());
+    }
 }

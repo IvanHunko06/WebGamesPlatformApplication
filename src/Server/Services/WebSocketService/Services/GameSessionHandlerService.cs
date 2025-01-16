@@ -1,9 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging;
-using SharedApiUtils;
-using SharedApiUtils.Interfaces;
-using SharedApiUtils.ServicesAccessing.Protos;
+﻿using Microsoft.AspNetCore.SignalR;
+using SharedApiUtils.Abstractons;
+using SharedApiUtils.Abstractons.Interfaces.Clients;
 using WebSocketService.Clients;
 using WebSocketService.Exceptions;
 using WebSocketService.Hubs;
@@ -54,7 +51,7 @@ public class GameSessionHandlerService : IGameSessionHandlerService, IDisposable
                 {
                     cts.Cancel();
                     cts.Dispose();
-                    logger.LogInformation($"User {userId} has connected. Remove session task canceled");
+                    logger.LogInformation($"User {userId} has connected. End session task canceled");
                 }
                 if (userConnection is not null)
                 {
@@ -83,7 +80,7 @@ public class GameSessionHandlerService : IGameSessionHandlerService, IDisposable
                 return;
             bool? isStarted = await serviceInternalRepository.RoomIsStarted(userRoom);
             if (isStarted == false) return;
-            logger.LogInformation($"User {userId} has disconnected. Begin End session task");
+            logger.LogInformation($"User {userId} has disconnected. Begin end session task");
             var cts = new CancellationTokenSource();
             if (hubState.UserDisconnectionTokens.TryAdd(userId, cts))
             {
@@ -118,26 +115,23 @@ public class GameSessionHandlerService : IGameSessionHandlerService, IDisposable
         try
         {
             var getGameSessionReply = await gameSessionService.GetGameSession(sessionId);
-            if (getGameSessionReply is null)
-                throw new InternalServerErrorException("getGameSessionReply is null");
-            if (!getGameSessionReply.IsSuccess)
-                throw new ErrorMessageException(getGameSessionReply.ErrorMessage);
+            if (!string.IsNullOrEmpty(getGameSessionReply.errorMessage))
+                throw new ErrorMessageException(getGameSessionReply.errorMessage);
 
-            if (!getGameSessionReply.GameSession.Players.Contains(userId))
+            if (!getGameSessionReply.gameSession.Players.Contains(userId))
                 throw new ErrorMessageException(ErrorMessages.NotAllowed);
 
             SessionInformation sessionInformation = new SessionInformation()
             {
-                GameId = getGameSessionReply.GameSession.GameId,
+                GameId = getGameSessionReply.gameSession.GameId,
             };
-            sessionInformation.Players = new List<string>(getGameSessionReply.GameSession.Players);
-            sessionInformation.BeginTime = DateTimeOffset.Parse(getGameSessionReply.GameSession.StartTime);
-            sessionInformation.EndTime = !string.IsNullOrEmpty(getGameSessionReply.GameSession.EndTime) ?
-                DateTimeOffset.Parse(getGameSessionReply.GameSession.EndTime) : null;
+            sessionInformation.Players = new List<string>(getGameSessionReply.gameSession.Players);
+            sessionInformation.BeginTime = getGameSessionReply.gameSession.StartTime;
+            sessionInformation.EndTime = getGameSessionReply.gameSession.EndTime;
 
             return sessionInformation;
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             logger.LogError(ex, "an error occurred while retrieving session information");
             throw;
@@ -147,17 +141,14 @@ public class GameSessionHandlerService : IGameSessionHandlerService, IDisposable
     {
         try
         {
-            var getGameSessionReply = await gameSessionService.GetGameSession(sessionId);
-            if (getGameSessionReply is null)
-                throw new InternalServerErrorException("getGameSessionReply is null");
-            if (!getGameSessionReply.IsSuccess)
-                throw new ErrorMessageException(getGameSessionReply.ErrorMessage);
+            var getGameSessionReply = await gameSessionService.SyncGameState(userId, sessionId);
+            if (!string.IsNullOrEmpty(getGameSessionReply.errorMessage))
+                throw new ErrorMessageException(getGameSessionReply.errorMessage);
 
-            if (!getGameSessionReply.GameSession.Players.Contains(userId))
-                throw new ErrorMessageException(ErrorMessages.NotAllowed);
 
-            return getGameSessionReply.GameSession.SessionState;
-        }catch (Exception ex)
+            return getGameSessionReply.gameState ?? "";
+        }
+        catch (Exception ex)
         {
             logger.LogError(ex, "an error occurred while retrieving session state");
             throw;
@@ -167,71 +158,33 @@ public class GameSessionHandlerService : IGameSessionHandlerService, IDisposable
     {
         try
         {
-            var sendGameEventReply = await gameSessionService.SendGameEvent(playerId, sessionId, actionName, payload);
-            if (sendGameEventReply is null)
-                throw new InternalServerErrorException("sendGameEventReply is null");
-            logger.LogInformation("Action done for session. Response received.");
-            if (!sendGameEventReply.IsSuccess)
-                throw new ErrorMessageException(sendGameEventReply.ErrorMessage);
+            var sendResult = await gameSessionService.SendGameEvent(playerId, sessionId, actionName, payload);
+            if (!string.IsNullOrEmpty(sendResult.errorMessage))
+                throw new ErrorMessageException(sendResult.errorMessage);
 
-            if (sendGameEventReply.HasNotifyRoomMessage && !string.IsNullOrEmpty(sendGameEventReply.NotifyRoomMessage))
-            {
-                logger.LogInformation($"Has NotifyMessage for session {sessionId}");
-                string? roomId = await serviceInternalRepository.GetSessionRoom(sessionId);
-                if (!string.IsNullOrEmpty(roomId))
-                {
-                    await hubContext.Clients.Group(roomId).ReciveAction(sendGameEventReply.NotifyRoomMessage);
-                    logger.LogInformation($"inform the room {roomId} for the session {sessionId} by message {sendGameEventReply.NotifyRoomMessage}");
-                }
-                else
-                {
-                    logger.LogInformation("Room id is null");
-                }
-            }
-            return sendGameEventReply.HasNotifyCallerMessage ? sendGameEventReply.NotifyCallerMessage : null;
+            return sendResult.gameErrorMessage;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred while performing an action for the session");
             throw;
         }
-        
+
     }
     public async Task EndSession(string sessionId, string reason, string? payload)
     {
         logger.LogInformation($"Ending session {sessionId} with reason {reason}");
         try
         {
-            var endGameSessionReply = await gameSessionService.EndGameSession(sessionId, reason, payload);
-            if (endGameSessionReply is null)
-                throw new InternalServerErrorException("endGameSessionReply");
+            string? errorMessage = await gameSessionService.EndGameSession(sessionId, reason, payload);
 
-            if (!endGameSessionReply.IsSuccess)
-                throw new ErrorMessageException(endGameSessionReply.ErrorMessage);
+            if (!string.IsNullOrEmpty(errorMessage))
+                throw new ErrorMessageException(errorMessage);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "an error occurred while terminating the session");
         }
 
-        try
-        {
-            string? roomId = await serviceInternalRepository.GetSessionRoom(sessionId);
-            if (string.IsNullOrEmpty(roomId))
-                throw new InternalServerErrorException("roomId is null");
-
-            var deleteRoomReply = await roomsService.DeleteRoom(roomId);
-            if (deleteRoomReply is null)
-                throw new InternalServerErrorException("deleteRoomReply");
-            if (!deleteRoomReply.IsSuccess && deleteRoomReply.ErrorMessage != ErrorMessages.RoomIdNotExist)
-                throw new ErrorMessageException(deleteRoomReply.ErrorMessage);
-
-            await serviceInternalRepository.RemoveSessionRoom(sessionId);
-            await hubContext.Clients.Group(roomId).SessionEnded(sessionId);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "an error occurred while deleting the roon");
-        }
     }
 }

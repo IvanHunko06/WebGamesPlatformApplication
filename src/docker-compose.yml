@@ -117,6 +117,7 @@ services:
         - rooms-service-internal-net
         - rooms-service-external-net
         - authtentification-service-external-net
+        - message-broker-network
 
   rooms-service-database:
     image: redis
@@ -137,6 +138,7 @@ services:
     networks:
         - websocket-service-external-net
         - websocket-service-internal-net
+        - message-broker-network
         - authtentification-service-external-net
 
   web-socket-service-database:
@@ -175,6 +177,7 @@ services:
     networks:
         - rating-service-internal-net
         - rating-service-external-net
+        - message-broker-network
         - authtentification-service-external-net
   
   match-history-service-database:
@@ -206,6 +209,7 @@ services:
     networks:
         - match-history-service-internal-net
         - match-history-service-external-net
+        - message-broker-network
         - authtentification-service-external-net
   
   game-session-service-server:
@@ -221,6 +225,7 @@ services:
     networks:
         - game-session-service-external-net
         - game-session-service-internal-net
+        - message-broker-network
         - authtentification-service-external-net
   
   game-session-service-database:
@@ -242,7 +247,20 @@ services:
     networks:
         - authtentification-service-external-net
         - processing-services-external-net
-
+        - message-broker-network
+  rabbitmq-message-broker:
+    image: rabbitmq:4.0-management-alpine
+    container_name: MessageBroker
+    hostname: gamesplatform-mq
+    environment:
+        - "RABBITMQ_DEFAULT_USER=admin"
+        - "RABBITMQ_DEFAULT_PASS=admin"
+    ports:
+        - "15672:15672"
+    networks:
+        - message-broker-network
+    volumes:
+        - ./Volumes/message-broker/data/:/var/lib/rabbitmq
   
     
 networks:
@@ -294,4 +312,7 @@ networks:
     processing-services-external-net:
         driver: bridge
         name: ProcessingServicesExternalNetwork
+    message-broker-network:
+        driver: bridge
+        name: MessageBrokerNetwork
         

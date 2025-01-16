@@ -1,169 +1,125 @@
-﻿using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+﻿using MatchHistoryService.Entities;
+using MatchHistoryService.Interfaces;
 using MatchHistoryService.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using SharedApiUtils.ServicesAccessing.Protos;
-using SharedApiUtils;
+using MatchHistoryService.Repositories;
+using SharedApiUtils.Abstractons;
+
 namespace MatchHistoryService.Services;
 
-public class MatchHistoryService : MatchesHistory.MatchesHistoryBase
+public class MatchHistoryService : IMatchHistoryService
 {
+    private readonly IMatchInfoRepository matchInfoRepository;
     private readonly ILogger<MatchHistoryService> logger;
-    private readonly MatchHistoryDbContext dbContext;
 
-    public MatchHistoryService(ILogger<MatchHistoryService> logger, MatchHistoryDbContext dbContext)
+    public MatchHistoryService(IMatchInfoRepository matchInfoRepository, ILogger<MatchHistoryService> logger)
     {
+        this.matchInfoRepository = matchInfoRepository;
         this.logger = logger;
-        this.dbContext = dbContext;
     }
-
-    [Authorize(Policy = "AllAuthenticatedUsers")]
-    public override async Task<GetMatchesInfoReply> GetMatchesInfo(Empty request, ServerCallContext context)
+    public async Task<string?> AddMatchInfo(MatchInfoModel matchInfo)
     {
-        var reply = new GetMatchesInfoReply();
-
         try
         {
-            var matches = await dbContext.MatchInformations.Include(m => m.MatchMembers).ToListAsync();
-            reply.Matches.AddRange(matches.Select(match => new MatchInfo
+            MatchInformationEntity matchInformationEntity = new MatchInformationEntity()
             {
-                TimeBegin = match.TimeBegin.ToString("o"),
-                TimeEnd = match.TimeEnd.ToString("o"),
-                FinishReason = match.FinishReason,
-                GameId = match.GameId,
-                MatchMembers = { match.MatchMembers.Select(member => new PlayerScore
-                    {
-                        UserId = member.UserId,
-                        Score = member.ScorePoints,
-                        IsWinner = member.IsWinner
-                    })}
-            }));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError($"Error retrieving matches info: {ex}");
-        }
-
-        return reply;
-    }
-
-    [Authorize(Policy = "AllAuthenticatedUsers")]
-    public override async Task<GetMatchesInfoForPlayerReply> GetMatchesInfoForPlayer(GetMatchesInfoForPlayerRequest request, ServerCallContext context)
-    {
-        var reply = new GetMatchesInfoForPlayerReply();
-
-        try
-        {
-            var matchesQuery = dbContext.MatchInformations
-                .Include(m => m.MatchMembers)
-                .Where(m => m.MatchMembers.Any(p => p.UserId == request.UserId));
-
-            var matches = await matchesQuery.ToListAsync();
-
-            if (matches.Count == 0)
-            {
-                reply.ErrorMessage = ErrorMessages.NotFound;
-                return reply;
-            }
-
-            reply.Matches.AddRange(matches.Select(match => new PlayerMatchInfo
-            {
-                TimeBegin = match.TimeBegin.ToString("o"),
-                TimeEnd = match.TimeEnd.ToString("o"),
-                FinishReason = match.FinishReason,
-                GameId = match.GameId,
-                MatchMembers = { match.MatchMembers.Select(member => new PlayerScore
-                    {
-                        UserId = member.UserId,
-                        Score = member.ScorePoints,
-                        IsWinner = member.IsWinner
-                    })}
-            }));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError($"Error retrieving matches info for player {request.UserId}: {ex}");
-            reply.ErrorMessage = ErrorMessages.InternalServerError;
-        }
-
-        return reply;
-    }
-
-    [Authorize(Policy = "AdminOrPrivateClient")]
-    public override async Task<AddMatchInfoReply> AddMatchInfo(MatchInfo request, ServerCallContext context)
-    {
-        var reply = new AddMatchInfoReply();
-
-
-        try
-        {
-            var match = new MatchInformation
-            {
-                TimeBegin = DateTimeOffset.Parse(request.TimeBegin),
-                TimeEnd = DateTimeOffset.Parse(request.TimeEnd),
-                FinishReason = request.FinishReason,
-                GameId = request.GameId,
-                MatchMembers = request.MatchMembers.Select(m => new Score
+                FinishReason = matchInfo.FinishReason,
+                GameId = matchInfo.GameId,
+                RecordId = matchInfo.RecordId,
+                TimeBegin = matchInfo.TimeBegin,
+                TimeEnd = matchInfo.TimeEnd,
+                UserScores = matchInfo.UserScoreDelta.Select(s =>
                 {
-                    UserId = m.UserId,
-                    ScorePoints = m.Score,
-                    IsWinner = m.IsWinner
+                    return new UserScoreEntity()
+                    {
+                        ScoreDelta = s.Value,
+                        UserId = s.Key,
+                    };
                 }).ToList()
             };
-
-            dbContext.MatchInformations.Add(match);
-            await dbContext.SaveChangesAsync();
-
-            reply.IsSuccess = true;
-        }
-        catch (FormatException ex)
-        {
-            logger.LogError($"Invalid date format in AddMatchInfo: {ex}");
-            reply.IsSuccess = false;
-            reply.ErrorMessage = ErrorMessages.InvalidDateFormat;
+            await matchInfoRepository.AddMatchInfo(matchInformationEntity);
+            logger.LogInformation($"New match info has added");
+            return null;
         }
         catch (Exception ex)
         {
-            logger.LogError($"Unexpected error in AddMatchInfo: {ex}");
-            reply.IsSuccess = false;
-            reply.ErrorMessage = ErrorMessages.InternalServerError;
+            logger.LogError(ex, "An error occurred while adding match information");
+            return ErrorMessages.InternalServerError;
         }
-
-        return reply;
     }
-
-    [Authorize(Policy = "AdminOrPrivateClient")]
-    public override async Task<DeleteMatchInfoReply> DeleteMatchInfo(DeleteMatchInfoRequest request, ServerCallContext context)
+    public async Task<string?> DeleteMatchInfo(string recordId)
     {
-        var reply = new DeleteMatchInfoReply();
-
-
+        logger.LogInformation($"Deleting match {recordId} information");
         try
         {
-            var match = await dbContext.MatchInformations
-                .Include(m => m.MatchMembers)
-                .FirstOrDefaultAsync(m => m.Id == request.MatchId);
-
-            if (match == null)
-            {
-                reply.IsSuccess = false;
-                reply.ErrorMessage = ErrorMessages.NotFound;
-                return reply;
-            }
-            dbContext.PlayerScores.RemoveRange(match.MatchMembers);
-            dbContext.MatchInformations.Remove(match);
-            await dbContext.SaveChangesAsync();
-
-            reply.IsSuccess = true;
+            Guid guid = Guid.Parse(recordId);
+            await matchInfoRepository.DeleteMatchInfo(guid);
+            logger.LogInformation($"Match information {recordId} has deleted");
+            return null;
+        }
+        catch (FormatException)
+        {
+            logger.LogWarning($"Invalid Guid format {recordId}");
+            return ErrorMessages.InvalidDateFormat;
         }
         catch (Exception ex)
         {
-            logger.LogError($"Unexpected error in DeleteMatchInfo: {ex}");
-            reply.IsSuccess = false;
-            reply.ErrorMessage = ErrorMessages.InternalServerError;
+            logger.LogError(ex, "An error occurred while deleting match information");
+            return ErrorMessages.InternalServerError;
         }
+    }
+    public async Task<List<MatchInfoModel>?> GetAllRecords()
+    {
+        try
+        {
+            List<MatchInfoModel> values = (await matchInfoRepository.GetAll()).Select(info =>
+            {
+                MatchInfoModel matchInfo = new MatchInfoModel()
+                {
+                    GameId = info.GameId,
+                    FinishReason = info.FinishReason,
+                    RecordId = info.RecordId,
+                    TimeBegin = info.TimeBegin,
+                    TimeEnd = info.TimeEnd,
+                };    
+                matchInfo.UserScoreDelta = info.UserScores
+                .Select(x => new KeyValuePair<string, int>(x.UserId, x.ScoreDelta))
+                .ToDictionary();
+                return matchInfo;
+            }).ToList();
 
-        return reply;
+            return values;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while retrieving the list of all records.");
+            return null;
+        }
+    }
+    public async Task<List<MatchInfoModel>?> GetAllMatchesForUser(string userId)
+    {
+        try
+        {
+            var values = (await matchInfoRepository.GetAllForUser(userId)).Select(info =>
+            {
+                MatchInfoModel matchInfo = new MatchInfoModel()
+                {
+                    GameId = info.GameId,
+                    FinishReason = info.FinishReason,
+                    RecordId = info.RecordId,
+                    TimeBegin = info.TimeBegin,
+                    TimeEnd = info.TimeEnd,
+                };
+                matchInfo.UserScoreDelta = info.UserScores
+                .Select(x => new KeyValuePair<string, int>(x.UserId, x.ScoreDelta))
+                .ToDictionary();
+                return matchInfo;
+            }).ToList();
+            return values;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while retrieving the list of records for the user.");
+            return null;
+        }
     }
 }
