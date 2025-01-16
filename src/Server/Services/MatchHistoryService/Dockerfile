@@ -3,11 +3,13 @@ WORKDIR /src
 COPY ./Services/MatchHistoryService/MatchHistoryService.csproj ./Services/MatchHistoryService/
 COPY ./SharedApiUtils.Abstractons/SharedApiUtils.Abstractons.csproj ./SharedApiUtils.Abstractons/
 COPY ./SharedApiUtils.gRPC/SharedApiUtils.gRPC.csproj ./SharedApiUtils.gRPC/
+COPY ./SharedApiUtils.RabbitMq/SharedApiUtils.RabbitMq.csproj ./SharedApiUtils.RabbitMq/
 RUN dotnet restore Services/MatchHistoryService/MatchHistoryService.csproj
 
 COPY ./Services/MatchHistoryService/ ./Services/MatchHistoryService/
 COPY ./SharedApiUtils.Abstractons/ ./SharedApiUtils.Abstractons/
 COPY ./SharedApiUtils.gRPC/ ./SharedApiUtils.gRPC/
+COPY ./SharedApiUtils.RabbitMq/ ./SharedApiUtils.RabbitMq/
 WORKDIR /src/Services/MatchHistoryService
 RUN dotnet publish -c Release -o /app/publish
 

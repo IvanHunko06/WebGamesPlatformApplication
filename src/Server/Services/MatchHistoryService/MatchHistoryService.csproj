@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\SharedApiUtils.gRPC\SharedApiUtils.gRPC.csproj" />
+    <ProjectReference Include="..\..\SharedApiUtils.RabbitMq\SharedApiUtils.RabbitMq.csproj" />
   </ItemGroup>
 
 </Project>
