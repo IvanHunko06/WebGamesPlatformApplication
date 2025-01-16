@@ -1,5 +1,6 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
+using SharedApiUtils.Abstractons.AuthenticationTokenAccessor;
 using SharedApiUtils.gRPC.ServicesAccessing.Protos;
 
 namespace SharedApiUtils.gRPC.ServicesAccessing.Connections;
