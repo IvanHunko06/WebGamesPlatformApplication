@@ -177,6 +177,7 @@ services:
     networks:
         - rating-service-internal-net
         - rating-service-external-net
+        - message-broker-network
         - authtentification-service-external-net
   
   match-history-service-database:
@@ -208,6 +209,7 @@ services:
     networks:
         - match-history-service-internal-net
         - match-history-service-external-net
+        - message-broker-network
         - authtentification-service-external-net
   
   game-session-service-server:
