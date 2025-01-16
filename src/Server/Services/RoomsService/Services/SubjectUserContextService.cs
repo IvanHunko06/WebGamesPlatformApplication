@@ -1,9 +1,10 @@
 ﻿using Grpc.Core;
+using RoomsService.Interfaces;
 using System.Security.Claims;
 
 namespace RoomsService.Services;
 
-public class UserContextService
+public class SubjectUserContextService : IUserContextService
 {
     public string? GetUserId(ServerCallContext context)
     {

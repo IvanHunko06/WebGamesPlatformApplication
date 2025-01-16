@@ -1,23 +1,18 @@
 ﻿using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
-using RoomManagmentService.Models;
 using RoomsService.Interfaces;
-using RoomsService.Repositories;
-using System.Collections.Concurrent;
-using System.Text.Json;
-using SharedApiUtils.gRPC.ServicesAccessing.Protos;
-using SharedApiUtils.Abstractons.Interfaces.Clients;
 using SharedApiUtils.Abstractons;
+using SharedApiUtils.gRPC.ServicesAccessing.Protos;
 namespace RoomsService.Services;
 
 public class RoomsRpcService : Rooms.RoomsBase
 {
 
-    
-    private readonly IRoomsService roomsService;
-    private readonly UserContextService userContextService;
 
-    public RoomsRpcService(IRoomsService roomsService, UserContextService userContextService)
+    private readonly IRoomsService roomsService;
+    private readonly IUserContextService userContextService;
+
+    public RoomsRpcService(IRoomsService roomsService, IUserContextService userContextService)
     {
         this.roomsService = roomsService;
         this.userContextService = userContextService;
@@ -41,7 +36,7 @@ public class RoomsRpcService : Rooms.RoomsBase
         }
         reply.RoomId = createResult.roomId;
         reply.IsSuccess = true;
-        if(!string.IsNullOrEmpty(createResult.accessToken))
+        if (!string.IsNullOrEmpty(createResult.accessToken))
             reply.AccessToken = createResult.accessToken;
 
         return reply;
@@ -144,7 +139,7 @@ public class RoomsRpcService : Rooms.RoomsBase
     {
         GetRoomReply reply = new GetRoomReply();
         var room = await roomsService.GetRoom(request.RoomId);
-        if(room is null)
+        if (room is null)
         {
             reply.ErrorMessage = ErrorMessages.RoomIdNotExist;
             return reply;

@@ -11,9 +11,9 @@ namespace RoomsService.Services;
 public class RoomsServiceController : ControllerBase
 {
     private readonly IRoomsService roomsService;
-    private readonly UserContextService userContextService;
+    private readonly IUserContextService userContextService;
 
-    public RoomsServiceController(IRoomsService roomsService, UserContextService userContextService)
+    public RoomsServiceController(IRoomsService roomsService, IUserContextService userContextService)
     {
         this.roomsService = roomsService;
         this.userContextService = userContextService;
