@@ -116,7 +116,7 @@ public class SqlServerRatingRepository : IRatingRepository
         {
             var userScores = await dbContext.UserScores
             .Where(x => x.SeasonId == seasonId)
-            .OrderBy(x => x.Score)
+            .OrderByDescending(x => x.Score)
             .Take(selectedRecords)
             .ToListAsync();
             return userScores;

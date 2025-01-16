@@ -9,6 +9,7 @@ public class RatingService : IRatingService
 {
     private readonly IRatingRepository ratingRepository;
     private readonly ILogger<RatingService> logger;
+    private static readonly SemaphoreSlim updateScoreSemaphore = new SemaphoreSlim(1, 1);
 
     public RatingService(IRatingRepository ratingRepository, ILogger<RatingService> logger)
     {
@@ -63,32 +64,39 @@ public class RatingService : IRatingService
     {
         try
         {
-            logger.LogInformation($"Adding or updating user score. UserId: {userId} SeasonId: {seasonId} Score: {score}");
-            var season = await ratingRepository.GetSeasonById(seasonId);
-            if (season is null)
-                return ErrorMessages.SeasonNotFound;
+            await updateScoreSemaphore.WaitAsync();
+            try
+            {
+                logger.LogInformation($"Adding or updating user score. UserId: {userId} SeasonId: {seasonId} Score: {score}");
+                var season = await ratingRepository.GetSeasonById(seasonId);
+                if (season is null)
+                    return ErrorMessages.SeasonNotFound;
 
-            var userScore = await ratingRepository.GetUserScore(userId, seasonId);
-            if (score < 0)
-                score = 0;
-            if (userScore is null)
-            {
-                UserScoreEntity userScoreEntity = new UserScoreEntity()
+                var userScore = await ratingRepository.GetUserScore(userId, seasonId);
+                if (score < 0)
+                    score = 0;
+                if (userScore is null)
                 {
-                    UserId = userId,
-                    Score = score,
-                    SeasonId = seasonId,
-                    Season = season
-                };
-                await ratingRepository.AddUserScore(userScoreEntity);
-                logger.LogInformation($"Added new userscore to database. UserId: {userId} Score: {score}");
+                    UserScoreEntity userScoreEntity = new UserScoreEntity()
+                    {
+                        UserId = userId,
+                        Score = score,
+                        SeasonId = seasonId,
+                    };
+                    await ratingRepository.AddUserScore(userScoreEntity);
+                    logger.LogInformation($"Added new userscore to database. UserId: {userId} Score: {score}");
+                }
+                else
+                {
+                    await ratingRepository.UpdateUserScore(userId, seasonId, score);
+                    logger.LogInformation($"Existing user {userId} rating score updated");
+                }
+                return null;
             }
-            else
+            finally
             {
-                await ratingRepository.UpdateUserScore(userId, seasonId, score);
-                logger.LogInformation($"Existing user {userId} rating score updated");
+                updateScoreSemaphore.Release();
             }
-            return null;
         }
         catch (Exception ex)
         {

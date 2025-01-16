@@ -4,6 +4,7 @@ using RatingService.Interfaces;
 using RatingService.Repositories;
 using RatingService.Services;
 using SharedApiUtils.Abstractons.Authentication;
+using SharedApiUtils.RabbitMq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,8 @@ builder.Services.AddDbContext<RatingDbContext>(options =>
 builder.Services.AddHostedService<SeasonAddService>();
 builder.Services.AddScoped<IRatingRepository, SqlServerRatingRepository>();
 builder.Services.AddScoped<IRatingService, RatingService.Services.RatingService>();
-
+builder.Services.AddCustomRabbitMq(builder.Configuration);
+builder.Services.AddSingleton<RatingRabbitMqService>();
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
@@ -27,6 +29,12 @@ using (var scope = app.Services.CreateScope())
     {
         await context.Database.MigrateAsync();
     }
+}
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var ratingService = services.GetRequiredService<RatingRabbitMqService>();
+    await ratingService.StartListening();
 }
 app.UseAuthentication();
 app.UseAuthorization();

@@ -4,11 +4,13 @@ WORKDIR /src
 COPY ./Services/RatingService/RatingService.csproj ./Services/RatingService/
 COPY ./SharedApiUtils.Abstractons/SharedApiUtils.Abstractons.csproj ./SharedApiUtils.Abstractons/
 COPY ./SharedApiUtils.gRPC/SharedApiUtils.gRPC.csproj ./SharedApiUtils.gRPC/
+COPY ./SharedApiUtils.RabbitMq/SharedApiUtils.RabbitMq.csproj ./SharedApiUtils.RabbitMq/
 RUN dotnet restore Services/RatingService/RatingService.csproj
 
 COPY ./Services/RatingService/ ./Services/RatingService/
 COPY ./SharedApiUtils.Abstractons/ ./SharedApiUtils.Abstractons/
 COPY ./SharedApiUtils.gRPC/ ./SharedApiUtils.gRPC/
+COPY ./SharedApiUtils.RabbitMq/ ./SharedApiUtils.RabbitMq/
 WORKDIR /src/Services/RatingService
 RUN dotnet publish -c Release -o /app/publish
 
