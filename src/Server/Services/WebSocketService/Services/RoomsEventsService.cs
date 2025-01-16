@@ -61,6 +61,9 @@ public class RoomsEventsService : IRoomsEventsService
                 if (string.IsNullOrEmpty(userConnection)) continue;
                 await sessionManagmentHub.Groups.RemoveFromGroupAsync(userConnection, room.RoomId);
             }
+            string? sessionId = await serviceInternalRepository.GetRoomSession(room.RoomId);
+            if(!string.IsNullOrEmpty(sessionId))
+                await serviceInternalRepository.RemoveSessionRoom(sessionId);
         }
         catch (Exception ex)
         {

@@ -1,10 +1,7 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using System.Text.Json;
 using SharedApiUtils.RabbitMq;
 using SharedApiUtils.RabbitMq.Core.Messages.RoomEvents;
 using SharedApiUtils.RabbitMq.Listeners;
-using System.Text.Json;
-using WebSocketService.Clients;
-using WebSocketService.Hubs;
 using WebSocketService.Interfaces;
 
 namespace WebSocketService.Services;
@@ -14,8 +11,8 @@ public class RoomsEventsRabbitMqListener : BaseRabbitMqRoomsEventsListener
     private readonly ILogger<RoomsEventsRabbitMqListener> logger;
     private readonly IRoomsEventsService roomsEvents;
 
-    public RoomsEventsRabbitMqListener(RabbitMqConnection connection, 
-        ILogger<RoomsEventsRabbitMqListener> logger, 
+    public RoomsEventsRabbitMqListener(RabbitMqConnection connection,
+        ILogger<RoomsEventsRabbitMqListener> logger,
         ILogger<BaseRabbitMqRoomsEventsListener> _logger1,
         ILogger<BaseRabbitMqMessageListener> _logger2,
         IRoomsEventsService roomsEvents
@@ -26,21 +23,57 @@ public class RoomsEventsRabbitMqListener : BaseRabbitMqRoomsEventsListener
     }
     protected override async Task OnRoomCreated(OnRoomCreatedEventMessage message)
     {
-        logger.LogInformation(JsonSerializer.Serialize(message));
+        await roomsEvents.InvokedOnRoomCreated(new Models.RoomModel()
+        {
+            Creator = message.Creator,
+            SelectedPlayersCount = message.SelectedPlayersCount,
+            GameId = message.GameId,
+            IsPrivate = message.IsPrivate,
+            Members = new List<string>(),
+            RoomId = message.RoomId,
+            RoomName = message.RoomName,
+        });
     }
 
     protected override async Task OnRoomDeleted(OnRoomDeletedEventMessage message)
     {
-        logger.LogInformation(JsonSerializer.Serialize(message));
+        await roomsEvents.InvokedOnRoomDeleted(new Models.RoomModel()
+        {
+            Creator = message.Creator,
+            SelectedPlayersCount = message.SelectedPlayersCount,
+            GameId = message.GameId,
+            IsPrivate = message.IsPrivate,
+            Members = new List<string>(),
+            RoomId = message.RoomId,
+            RoomName = message.RoomName,
+        });
     }
 
     protected override async Task OnRoomJoin(OnRoomJoinEventMessage message)
     {
-        logger.LogInformation(JsonSerializer.Serialize(message));
+        await roomsEvents.InvokedOnRoomJoin(new Models.RoomModel()
+        {
+            Creator = message.Creator,
+            SelectedPlayersCount = message.SelectedPlayersCount,
+            GameId = message.GameId,
+            IsPrivate = message.IsPrivate,
+            Members = new List<string>(),
+            RoomId = message.RoomId,
+            RoomName = message.RoomName,
+        }, message.AddedUserId);
     }
 
     protected override async Task OnRoomLeave(OnRoomLeaveEventMessage message)
     {
-        logger.LogInformation(JsonSerializer.Serialize(message));
+        await roomsEvents.InvokedOnRoomLeave(new Models.RoomModel()
+        {
+            Creator = message.Creator,
+            SelectedPlayersCount = message.SelectedPlayersCount,
+            GameId = message.GameId,
+            IsPrivate = message.IsPrivate,
+            Members = new List<string>(),
+            RoomId = message.RoomId,
+            RoomName = message.RoomName,
+        }, message.RemovedUserId);
     }
 }

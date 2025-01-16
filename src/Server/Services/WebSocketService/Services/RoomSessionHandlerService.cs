@@ -18,14 +18,15 @@ public class RoomSessionHandlerService : IDisposable, IRoomSessionHandlerService
     private readonly IRoomsServiceClient roomsService;
     private readonly IGameSessionServiceClient gameSessionService;
     private readonly IServiceInternalRepository serviceInternalRepository;
-
+    private readonly IGameSessionHandlerService gameSessionHandlerService;
 
     public RoomSessionHandlerService(ILogger<RoomSessionHandlerService> logger,
         IHubContext<SessionManagmentHub, ISessionManagmentClient> hubContext,
         SessionManagmentHubState hubState,
         IRoomsServiceClient roomsService,
         IGameSessionServiceClient gameSessionService,
-        IServiceInternalRepository serviceInternalRepository)
+        IServiceInternalRepository serviceInternalRepository,
+        IGameSessionHandlerService gameSessionHandlerService)
     {
         this.logger = logger;
         this.hubContext = hubContext;
@@ -33,6 +34,7 @@ public class RoomSessionHandlerService : IDisposable, IRoomSessionHandlerService
         this.roomsService = roomsService;
         this.gameSessionService = gameSessionService;
         this.serviceInternalRepository = serviceInternalRepository;
+        this.gameSessionHandlerService = gameSessionHandlerService;
         hubState.UserConnections.OnUserDisconnected += UserConnections_OnUserDisconnected;
         hubState.UserConnections.OnUserConnected += UserConnections_OnUserConnected;
     }
@@ -158,6 +160,12 @@ public class RoomSessionHandlerService : IDisposable, IRoomSessionHandlerService
                 await hubContext.Groups.RemoveFromGroupAsync(userConnection, roomId);
             }
             _ = Task.Run(() => hubContext.Clients.Group(roomId).RemoveRoomMember(userId));
+            _ = Task.Run(async () =>
+            {
+                string? sessionId = await serviceInternalRepository.GetRoomSession(roomId);
+                if (string.IsNullOrEmpty(sessionId)) return;
+                await gameSessionHandlerService.EndSession(sessionId, EndSessionReason.PlayerDisconnected, userId);
+            });
         }
         catch (Exception ex)
         {

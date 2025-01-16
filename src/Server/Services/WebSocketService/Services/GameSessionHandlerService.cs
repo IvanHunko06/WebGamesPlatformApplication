@@ -51,7 +51,7 @@ public class GameSessionHandlerService : IGameSessionHandlerService, IDisposable
                 {
                     cts.Cancel();
                     cts.Dispose();
-                    logger.LogInformation($"User {userId} has connected. Remove session task canceled");
+                    logger.LogInformation($"User {userId} has connected. End session task canceled");
                 }
                 if (userConnection is not null)
                 {
@@ -80,7 +80,7 @@ public class GameSessionHandlerService : IGameSessionHandlerService, IDisposable
                 return;
             bool? isStarted = await serviceInternalRepository.RoomIsStarted(userRoom);
             if (isStarted == false) return;
-            logger.LogInformation($"User {userId} has disconnected. Begin End session task");
+            logger.LogInformation($"User {userId} has disconnected. Begin end session task");
             var cts = new CancellationTokenSource();
             if (hubState.UserDisconnectionTokens.TryAdd(userId, cts))
             {
@@ -162,7 +162,7 @@ public class GameSessionHandlerService : IGameSessionHandlerService, IDisposable
             if (!string.IsNullOrEmpty(sendResult.errorMessage))
                 throw new ErrorMessageException(sendResult.errorMessage);
 
-            return sendResult.errorMessage;
+            return sendResult.gameErrorMessage;
         }
         catch (Exception ex)
         {
@@ -186,22 +186,5 @@ public class GameSessionHandlerService : IGameSessionHandlerService, IDisposable
             logger.LogError(ex, "an error occurred while terminating the session");
         }
 
-        try
-        {
-            string? roomId = await serviceInternalRepository.GetSessionRoom(sessionId);
-            if (string.IsNullOrEmpty(roomId))
-                throw new InternalServerErrorException("roomId is null");
-
-            string? errorMessage = await roomsService.DeleteRoom(roomId);
-            if (!string.IsNullOrEmpty(errorMessage))
-                logger.LogWarning($"An error occurred while deleting the room. ErrorMessage: {errorMessage}");
-
-            await serviceInternalRepository.RemoveSessionRoom(sessionId);
-            await hubContext.Clients.Group(roomId).SessionEnded(sessionId);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "an error occurred while deleting the roon");
-        }
     }
 }

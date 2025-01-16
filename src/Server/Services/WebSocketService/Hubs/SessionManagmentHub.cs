@@ -80,8 +80,9 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
             
             try
             {
-                if(!string.IsNullOrEmpty(await serviceInternalRepository.GetUserRoom(userId)))
-                    await roomSessionHandlerService.RemoveFromRoom(userId, roomId);
+                string? userRoom = await serviceInternalRepository.GetUserRoom(userId);
+                if (!string.IsNullOrEmpty(userRoom))
+                    await roomSessionHandlerService.RemoveFromRoom(userId, userRoom);
             }
             catch(ErrorMessageException ex)
             {
@@ -97,7 +98,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex.ToString());
+            logger.LogWarning(ex, "An error occurred while joining the room.");
             return new HubActionResult(false, ErrorMessages.InternalServerError, null);
         }
     }
