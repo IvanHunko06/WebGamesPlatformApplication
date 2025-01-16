@@ -32,4 +32,5 @@ public static class ErrorMessages
     public static string SessionForRoomExist { get; } = "SESSION_FOR_ROOM_ALREADY_EXIST";
     public static string GameInProgress { get; } = "GAME_IN_PROGRESS";
     public static string UserNotInSession { get; } = "USER_NOT_IN_SESSION";
+    public static string IncorrectGamePlayersCount { get; } = "INCORRECT_PLAYERS_COUNT";
 }
