@@ -31,6 +31,8 @@ public abstract class BaseRabbitMqGameProccessingListener : BaseRabbitMqMessageL
         RegisterEventListener(RabbitMqEvents.GetEmptySessionState, true, HandleGetEmptySessionState);
         RegisterEventListener(RabbitMqEvents.ProccessAction, true, HandleProccessAction);
         RegisterEventListener(RabbitMqEvents.GetGameStateForPlayer, true, HandleGetGameStateForPlayer);
+        RegisterEventListener(RabbitMqEvents.GetSessionDeltaMessages, true, HandleGetSessionDeltaMessages);
+        RegisterEventListener(RabbitMqEvents.CheckGameOver, true, HandleCheckGameOver);
         await StartBaseListening(false, $"GameProccessing:{gameId}", channel);
     }
 
@@ -86,8 +88,44 @@ public abstract class BaseRabbitMqGameProccessingListener : BaseRabbitMqMessageL
             return (false, []);
         }
     }
+    private async Task<(bool ackSuccess, byte[] replyBody)> HandleGetSessionDeltaMessages(byte[] requestBody)
+    {
+        try
+        {
+            var request = JsonSerializer.Deserialize<GetSessionDeltaMessagesRequest>(requestBody);
+            if (request is null)
+                return (false, []);
+            var reply = await GetSessionDeltaMessages(request);
+            var replyBytes = JsonSerializer.SerializeToUtf8Bytes(reply);
+            return (true, replyBytes);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while receiving the get GetSessionDeltaMessages message");
+            return (false, []);
+        }
+    }
+    private async Task<(bool ackSuccess, byte[] replyBody)> HandleCheckGameOver(byte[] requestBody)
+    {
+        try
+        {
+            var request = JsonSerializer.Deserialize<CheckGameOverRequest>(requestBody);
+            if (request is null)
+                return (false, []);
+            var reply = await CheckGameOver(request);
+            var replyBytes = JsonSerializer.SerializeToUtf8Bytes(reply);
+            return (true, replyBytes);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while receiving the get CheckGameOver message");
+            return (false, []);
+        }
+    }
 
     protected abstract Task<GetEmptySessionStateReply> GetEmptySessionState(GetEmptySessionStateRequest request);
     protected abstract Task<ProccessActionReply> ProccessAction(ProccessActionRequest request);
     protected abstract Task<GetGameStateForPlayerReply> GetGameStateForPlayer(GetGameStateForPlayerRequest request);
+    protected abstract Task<GetSessionDeltaMessagesReply> GetSessionDeltaMessages(GetSessionDeltaMessagesRequest request);
+    protected abstract Task<CheckGameOverReply> CheckGameOver(CheckGameOverRequest request);
 }
