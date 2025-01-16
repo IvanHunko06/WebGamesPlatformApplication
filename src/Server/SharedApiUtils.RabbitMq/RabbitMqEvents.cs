@@ -24,4 +24,18 @@ public static class RabbitMqEvents
     public const string GetEmptySessionState = "GetEmptySessionState";
     public const string ProccessAction = "ProccessAction";
     public const string GetGameStateForPlayer = "GetGameStateForPlayer";
+    public const string GetSessionDeltaMessages = "GetSessionDeltaMessages";
+    public const string CheckGameOver = "CheckGameOver";
+
+
+    public const string NotifyReciveAction_AllUsers = "NotifyReciveAction_AllUsers";
+    public const string NotifyReciveAction_User = "NotifyReciveAction_User";
+    public const string NotifySessionEnded_User = "NotifySessionEnded_User";
+    public const string NotifySessionEnded_AllUsers = "NotifySessionEnded_AllUsers";
+
+
+    public const string AddLastSeasonUserScore = "AddLastSeasonUserScore";
+
+
+    public const string AddMatchInfo = "AddMatchInfo";
 }
