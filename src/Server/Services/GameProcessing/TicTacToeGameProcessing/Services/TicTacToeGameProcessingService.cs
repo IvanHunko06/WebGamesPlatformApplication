@@ -1,7 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
-using SharedApiUtils.gRPC.ServicesAccessing.Protos;
-using System;
-using System.Text.Json;
+﻿using System.Text.Json;
+using SharedApiUtils.Abstractons;
 using TicTacToeGameProcessing.Interfaces;
 using TicTacToeGameProcessing.Models;
 
@@ -19,6 +17,8 @@ public class TicTacToeGameProcessingService : ITicTacToeGameProcessingService
     }
     public string GetEmptySessionState(List<string> players)
     {
+        if (players.Count != 2)
+            return ErrorMessages.IncorrectGamePlayersCount;
         TicTacToeSessionState sessionState = new TicTacToeSessionState()
         {
             GameBoard = new List<char> { ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' }
@@ -76,5 +76,95 @@ public class TicTacToeGameProcessingService : ITicTacToeGameProcessingService
     public string GetGameStateForPlayer(string sessionState, string userId)
     {
         return sessionState;
+    }
+    public (string? notifySession, Dictionary<string, string>? notifyPlayers) GetSessionDeltaMessages(string oldSessionState, string newSessionState)
+    {
+        try
+        {
+            TicTacToeSessionState? oldState = JsonSerializer.Deserialize<TicTacToeSessionState>(oldSessionState);
+            TicTacToeSessionState? newState = JsonSerializer.Deserialize<TicTacToeSessionState>(newSessionState);
+            if (oldState is null || newState is null)
+                return (null, null);
+            NotifyClientAction? updateCurrentPlayer = null;
+            if (oldState.CurrentPlayer != newState.CurrentPlayer)
+            {
+                updateCurrentPlayer = new NotifyClientAction()
+                {
+                    Action = "UpdateCurrentPlayer",
+                    Payload = newState.CurrentPlayer,
+                };
+            }
+            NotifyClientAction? updateGameBoard = null;
+            if (!oldState.GameBoard.SequenceEqual(newState.GameBoard))
+            {
+                updateGameBoard = new NotifyClientAction()
+                {
+                    Action = "UpdateGameboard",
+                    Payload = JsonSerializer.Serialize(newState.GameBoard)
+                };
+            }
+            List<NotifyClientAction> totalChanges = new List<NotifyClientAction>();
+            if (updateCurrentPlayer is not null)
+                totalChanges.Add(updateCurrentPlayer);
+            if (updateGameBoard is not null)
+                totalChanges.Add(updateGameBoard);
+
+            if (totalChanges.Count == 0)
+                return (null, null);
+            else
+                return (JsonSerializer.Serialize(totalChanges), null);
+        }
+        catch (Exception)
+        {
+            return (null, null);
+        }
+    }
+    public (bool IsOver, Dictionary<string, int>? PlayerScores) CheckGameWin(string jsonSessionState)
+    {
+        try
+        {
+            TicTacToeSessionState? sessionState = JsonSerializer.Deserialize<TicTacToeSessionState>(jsonSessionState);
+            if (sessionState is null)
+                return (false, null);
+            int[][] winningCombinations = new int[][]
+            {
+            new int[] {0, 1, 2}, new int[] {3, 4, 5}, new int[] {6, 7, 8},
+            new int[] {0, 3, 6}, new int[] {1, 4, 7}, new int[] {2, 5, 8},
+            new int[] {0, 4, 8}, new int[] {2, 4, 6}
+            };
+
+            string? winPlayer = null;
+            foreach (var combo in winningCombinations)
+            {
+                if (sessionState.GameBoard[combo[0]] != ' ' &&
+                    sessionState.GameBoard[combo[0]] == sessionState.GameBoard[combo[1]] &&
+                    sessionState.GameBoard[combo[1]] == sessionState.GameBoard[combo[2]])
+                {
+                    winPlayer = sessionState.GameBoard[combo[0]] == 'X' ? sessionState.XPlayer : sessionState.OPlayer;
+                }
+            }
+            if (!string.IsNullOrEmpty(winPlayer))
+            {
+                Dictionary<string, int> scores = new Dictionary<string, int>();
+                scores[sessionState.XPlayer] = winPlayer == sessionState.XPlayer ? 10 : -10;
+                scores[sessionState.OPlayer] = winPlayer == sessionState.OPlayer ? 10 : -10;
+                return (true, scores);
+            }
+            else if (sessionState.GameBoard.Contains(' '))
+            {
+                return (false, null);
+            }
+            else
+            {
+                Dictionary<string, int> scores = new Dictionary<string, int>();
+                scores[sessionState.XPlayer] = 0;
+                scores[sessionState.OPlayer] = 0;
+                return (true, scores);
+            }
+        }
+        catch (Exception)
+        {
+            return (false, null);
+        }
     }
 }

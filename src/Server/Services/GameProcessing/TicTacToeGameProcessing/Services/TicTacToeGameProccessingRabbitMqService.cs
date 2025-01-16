@@ -17,6 +17,16 @@ public sealed class TicTacToeGameProccessingRabbitMqService : BaseRabbitMqGamePr
     {
         this.ticTacToeGameProcessingService = ticTacToeGameProcessingService;
     }
+
+    protected override Task<CheckGameOverReply> CheckGameOver(CheckGameOverRequest request)
+    {
+        var checkStatus = ticTacToeGameProcessingService.CheckGameWin(request.SessionState);
+        CheckGameOverReply reply = new CheckGameOverReply();
+        reply.PlayerScores = checkStatus.PlayerScores;
+        reply.IsOver = checkStatus.IsOver;
+        return Task.FromResult(reply);
+    }
+
     protected override Task<GetEmptySessionStateReply> GetEmptySessionState(GetEmptySessionStateRequest request)
     {
         string sessionState = ticTacToeGameProcessingService.GetEmptySessionState(request.Players.ToList());
@@ -29,6 +39,15 @@ public sealed class TicTacToeGameProccessingRabbitMqService : BaseRabbitMqGamePr
     {
         var reply = new GetGameStateForPlayerReply();
         reply.GameState = ticTacToeGameProcessingService.GetGameStateForPlayer(request.GameState, request.UserId);
+        return Task.FromResult(reply);
+    }
+
+    protected override Task<GetSessionDeltaMessagesReply> GetSessionDeltaMessages(GetSessionDeltaMessagesRequest request)
+    {
+        var changes = ticTacToeGameProcessingService.GetSessionDeltaMessages(request.OldSessionState, request.NewSessionState);
+        GetSessionDeltaMessagesReply reply = new GetSessionDeltaMessagesReply();
+        reply.NotifyRoomMessage = changes.notifySession;
+        reply.NotifyPlayersMessages = changes.notifyPlayers;
         return Task.FromResult(reply);
     }
 
