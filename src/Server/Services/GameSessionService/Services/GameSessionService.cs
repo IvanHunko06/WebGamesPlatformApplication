@@ -1,7 +1,9 @@
-﻿using GameSessionService.Interfaces;
+﻿using System.Text.Json;
+using GameSessionService.Interfaces;
 using SharedApiUtils.Abstractons;
 using SharedApiUtils.Abstractons.Interfaces.Clients;
-using System.Text.Json;
+using SharedApiUtils.gRPC.ServicesAccessing.Protos;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace GameSessionService.Services;
 
@@ -11,17 +13,26 @@ public class GameSessionService : IGameSessionService
     private readonly ISessionsRepository sessionsRepository;
     private readonly IRoomsServiceClient roomsService;
     private readonly IGameProcessingServiceClient gameProcessingService;
+    private readonly IGameSessionWsNotifyerClient gameSessionWsNotifyer;
+    private readonly IRatingServiceClient ratingService;
+    private readonly IMatchHistoryServiceClient matchHistoryService;
 
     public GameSessionService(
         ILogger<GameSessionService> logger,
         ISessionsRepository sessionsRepository,
         IRoomsServiceClient roomsService,
-        IGameProcessingServiceClient gameProcessingService)
+        IGameProcessingServiceClient gameProcessingService,
+        IGameSessionWsNotifyerClient gameSessionWsNotifyer,
+        IRatingServiceClient ratingService,
+        IMatchHistoryServiceClient matchHistoryService)
     {
         this.logger = logger;
         this.sessionsRepository = sessionsRepository;
         this.roomsService = roomsService;
         this.gameProcessingService = gameProcessingService;
+        this.gameSessionWsNotifyer = gameSessionWsNotifyer;
+        this.ratingService = ratingService;
+        this.matchHistoryService = matchHistoryService;
     }
     public async Task<(string? errorMessage, string? sessionId)> StartGameSession(string roomId)
     {
@@ -43,26 +54,30 @@ public class GameSessionService : IGameSessionService
                 EndTime = null,
                 SessionState = "",
             };
-
+            logger.LogDebug($"Getting room information. RoomId: {roomId}");
             var getRoomReply = await roomsService.GetRoom(roomId);
             if (!string.IsNullOrEmpty(getRoomReply.errorMessage))
             {
                 logger.LogInformation($"Getting room {roomId} error. ErrorMessage: {getRoomReply.errorMessage}");
                 return (getRoomReply.errorMessage, null);
             }
+            logger.LogDebug($"Room {roomId} info recived");
             gameSession.OwnerId = getRoomReply.roomModel.Creator;
             gameSession.GameId = getRoomReply.roomModel.GameId;
             gameSession.PlayerScores = new Dictionary<string, int>();
             gameSession.Players = new List<string>();
-            foreach (var member in gameSession.Players)
+            foreach (var member in getRoomReply.roomModel.Members)
             {
                 gameSession.Players.Add(member);
                 gameSession.PlayerScores[member] = 0;
             }
+            logger.LogDebug($"Getting empty session state. GameId: {gameSession.GameId}");
             string? emptySessionState = await gameProcessingService.GetEmptySessionState(gameSession.GameId, gameSession.Players);
-            if (emptySessionState is null)
+            if (emptySessionState == ErrorMessages.InternalServerError)
                 return (ErrorMessages.InternalServerError, null);
-
+            else if (emptySessionState == ErrorMessages.IncorrectGamePlayersCount)
+                return (ErrorMessages.IncorrectGamePlayersCount, null);
+            logger.LogDebug($"Empty session state recived");
             gameSession.SessionState = emptySessionState;
             await sessionsRepository.AddOrUpdateSession(gameSession);
             logger.LogInformation($"Session {sessionId} created for room {roomId}");
@@ -79,12 +94,13 @@ public class GameSessionService : IGameSessionService
     {
         try
         {
+            logger.LogInformation($"Send game event for session: {sessionId}. Action: {action}. Payload: {payload}");
             var gameSession = await sessionsRepository.GetSessionById(sessionId);
             if (gameSession is null)
                 return (ErrorMessages.SessionIdNotExist, null);
 
 
-            logger.LogDebug($"SendGameEvent: game session {gameSession} found");
+            logger.LogDebug($"SendGameEvent: game session {gameSession.SessionId} found");
             if (!gameSession.Players.Contains(userId))
             {
                 logger.LogInformation($"User {userId} not in session {sessionId}");
@@ -99,69 +115,64 @@ public class GameSessionService : IGameSessionService
 
             });
             gameSession.LastUpdated = DateTimeOffset.UtcNow;
+            string oldSessionState = gameSession.SessionState;
             var proccessResult = await gameProcessingService.ProccessAction(gameSession.GameId, gameSession.SessionState,
                 userId, action, payload);
             if (!string.IsNullOrEmpty(proccessResult.gameErrorMessage))
                 return (null, proccessResult.gameErrorMessage);
 
             gameSession.SessionState = proccessResult.newSessionState;
-            
-            
+            string newSessionState = proccessResult.newSessionState;
+            await sessionsRepository.AddOrUpdateSession(gameSession);
+            logger.LogInformation($"Session {gameSession.SessionId} updated");
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var notifyChanges = await gameProcessingService.GetSessionDeltaMessages(gameSession.GameId, oldSessionState, newSessionState);
+                    if (!string.IsNullOrEmpty(notifyChanges.notifyRoomMessage))
+                    {
+                        logger.LogInformation($"Notifying session {gameSession.SessionId} with message {notifyChanges.notifyRoomMessage}");
+                        _ = gameSessionWsNotifyer.NotifyReciveAction_AllUsers(gameSession.SessionId, notifyChanges.notifyRoomMessage);
+                    }
 
+
+                    if (notifyChanges.notifyPlayers is not null)
+                    {
+                        foreach (var notifyMessage in notifyChanges.notifyPlayers)
+                        {
+                            logger.LogInformation($"Notifying session {gameSession.SessionId} player {notifyMessage.Key} with message {notifyMessage.Value}");
+                            _ = gameSessionWsNotifyer.NotifyReciveAction_User(gameSession.SessionId, notifyMessage.Key, notifyMessage.Value);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, $"An error occurred while sending game state change messages");
+                }
+            });
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    logger.LogInformation($"Checking game over status for session {gameSession.SessionId}");
+                    var checkWinResult = await gameProcessingService.CheckGameOver(gameSession.GameId, gameSession.SessionState);
+                    if (checkWinResult.IsOver == false)
+                    {
+                        logger.LogInformation($"Session {gameSession.SessionId} in progress");
+                        return;
+                    }
+                    logger.LogInformation($"Session {gameSession.SessionId} is over.");
+
+                    await EndGameSession(gameSession.SessionId, EndSessionReason.NormalFinish, JsonSerializer.Serialize(checkWinResult.PlayerScores));
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "An error occurred in the logic for handling the game end check.");
+                }
+            });
             return (null, null);
-            //if (!proccessActionReply.IsSuccess)
-            //{
-            //    Models.NotifyMessage notifyCallerMessage = new Models.NotifyMessage()
-            //    {
-            //        IsSuccess = false,
-            //        GameErrorMessage = proccessActionReply.GameErrorMessage
-            //    };
-            //    if (proccessActionReply.HasNotifyCaller)
-            //        notifyCallerMessage.Payload = proccessActionReply.NotifyCaller;
-            //    reply.IsSuccess = true;
-            //    reply.NotifyCallerMessage = JsonSerializer.Serialize(notifyCallerMessage);
-            //    return reply;
-            //}
-            //if (proccessActionReply.HasNotifyRoom)
-            //{
-            //    Models.NotifyMessage notifyRoomMessage = new Models.NotifyMessage()
-            //    {
-            //        IsSuccess = true,
-            //        GameErrorMessage = null
-            //    };
-            //    notifyRoomMessage.Payload = proccessActionReply.NotifyRoom;
-            //    reply.NotifyRoomMessage = JsonSerializer.Serialize(notifyRoomMessage);
-            //}
-            //if (proccessActionReply.HasNotifyCaller)
-            //{
-            //    Models.NotifyMessage notifyCallerMessage = new Models.NotifyMessage()
-            //    {
-            //        IsSuccess = true,
-            //        GameErrorMessage = null
-            //    };
-            //    notifyCallerMessage.Payload = proccessActionReply.NotifyCaller;
-            //    reply.NotifyCallerMessage = JsonSerializer.Serialize(notifyCallerMessage);
-            //}
-            //gameSession.SessionState = proccessActionReply.NewSessionState;
-            //gameSession.LastUpdated = DateTimeOffset.UtcNow;
-            //gameSession.ActionsLog.Add(new Models.GameAction()
-            //{
-            //    ActionType = request.Action,
-            //    Payload = request.Payload,
-            //    PlayerId = request.UserId,
-            //    Timestamp = DateTimeOffset.UtcNow,
-            //});
-            //foreach (var player in proccessActionReply.PlayerScoreDelta)
-            //{
-            //    if (gameSession.PlayerScores.ContainsKey(player.Key))
-            //    {
-            //        gameSession.PlayerScores[player.Key] += player.Value;
-            //    }
-            //}
-            //await sessionsRepository.AddOrUpdateSession(gameSession);
-            //reply.IsSuccess = true;
-            //logger.LogInformation($"SendGameEvent: game action has proccessed");
-            //logger.LogDebug($"SendGameEvent: reply: {JsonSerializer.Serialize(reply)}");
         }
         catch (Exception ex)
         {
@@ -191,7 +202,28 @@ public class GameSessionService : IGameSessionService
             var session = await sessionsRepository.GetSessionById(sessionId);
             if (session is null)
                 return ErrorMessages.SessionIdNotExist;
+            session.EndTime = DateTimeOffset.UtcNow;
+            if (reason == EndSessionReason.NormalFinish)
+                await NormalSessionFinish(payload ?? "", session);
+            else if (reason == EndSessionReason.PlayerDisconnected)
+                await PlayerDisconnectedFinish(payload ?? "", session);
+
+            _ = Task.Run(async () =>
+            {
+                string? errorMessage = await matchHistoryService.AddMatchInfo(
+                    session.GameId, 
+                    reason,
+                    session.StartTime, 
+                    session.EndTime.Value,
+                    session.PlayerScores);
+                if (!string.IsNullOrWhiteSpace(errorMessage))
+                    logger.LogWarning($"An error occurred while saving the match history. Error message: {errorMessage}");
+            });
+            
             await sessionsRepository.DeleteSessionById(sessionId);
+            string? deleteRoomErrorMessage = await roomsService.DeleteRoom(session.RoomId);
+            if (!string.IsNullOrEmpty(deleteRoomErrorMessage))
+                logger.LogWarning($"Room {session.RoomId} deleting error {deleteRoomErrorMessage}");
             return null;
         }
         catch (Exception ex)
@@ -202,6 +234,57 @@ public class GameSessionService : IGameSessionService
     }
     public async Task<(string? errorMessage, string? sessionState)> SyncGameState(string sessionId, string userId)
     {
-        return (null, null);
+        try
+        {
+            var session = await sessionsRepository.GetSessionById(sessionId);
+            if (session is null)
+                return (ErrorMessages.SessionIdNotExist, null);
+            string gameState = await gameProcessingService.GetGameStateForPlayer(session.GameId, userId, session.SessionState);
+            if (gameState == ErrorMessages.InternalServerError)
+                return (ErrorMessages.InternalServerError, null);
+
+            return (null, gameState);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"An error occurred while getting the game state for the player {userId}");
+            return (ErrorMessages.InternalServerError, null);
+        }
+    }
+
+    private async Task NormalSessionFinish(string jsonPayload, Models.GameSessionModel gameSession)
+    {
+        try
+        {
+            Dictionary<string, int>? playerScores = JsonSerializer.Deserialize<Dictionary<string, int>>(jsonPayload);
+            if (playerScores is null) return;
+
+            logger.LogInformation($"Notifying session players");
+            foreach (var score in playerScores)
+            {
+                logger.LogDebug($"Notifying user {score.Key} with score {score.Value}");
+                gameSession.PlayerScores[score.Key] = score.Value;
+                await gameSessionWsNotifyer.NotifySessionEnded_User(gameSession.SessionId, score.Key, EndSessionReason.NormalFinish, score.Value.ToString());
+                _ = Task.Run(async () =>
+                {
+                    string? errorMessage = await ratingService.AddLastSeasonUserScore(score.Key, score.Value);
+                    if (!string.IsNullOrEmpty(errorMessage))
+                        logger.LogWarning($"an error occurred while updating the user rating. Error message: {errorMessage}");
+                });
+            }
+        }
+        catch(Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while processing a normal session termination");
+        }
+    }
+    private async Task PlayerDisconnectedFinish(string disconnectedPlayer, Models.GameSessionModel gameSession)
+    {
+        if (string.IsNullOrEmpty(disconnectedPlayer)) return;
+        gameSession.PlayerScores[disconnectedPlayer] = -5;
+        await gameSessionWsNotifyer.NotifySessionEnded_AllUser(gameSession.SessionId, EndSessionReason.PlayerDisconnected, disconnectedPlayer);
+        string? errorMessage = await ratingService.AddLastSeasonUserScore(disconnectedPlayer, -5);
+        if (!string.IsNullOrEmpty(errorMessage))
+            logger.LogWarning($"an error occurred while updating the user rating. Error message: {errorMessage}");
     }
 }

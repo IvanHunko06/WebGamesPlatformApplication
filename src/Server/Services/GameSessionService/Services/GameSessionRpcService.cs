@@ -1,6 +1,8 @@
-﻿using GameSessionService.Interfaces;
+﻿using System.Text.Json;
+using GameSessionService.Interfaces;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
+using SharedApiUtils.Abstractons;
 using SharedApiUtils.gRPC.ServicesAccessing.Protos;
 
 namespace GameSessionService.Services;
@@ -55,51 +57,44 @@ public class GameSessionRpcService : GameSession.GameSessionBase
     public override async Task<GetGameSessionReply> GetGameSession(GetGameSessionRequest request, ServerCallContext context)
     {
         GetGameSessionReply reply = new GetGameSessionReply();
-        //try
-        //{
-        //    Models.GameSessionModel? gameSession = await sessionsRepository.GetSessionById(request.SessionId);
-        //    if (gameSession is null)
-        //    {
-        //        reply.ErrorMessage = ErrorMessages.SessionIdNotExist;
-        //        return reply;
-        //    }
-        //    GameSessionRPCModel model = new GameSessionRPCModel()
-        //    {
-        //        EndTime = gameSession.EndTime.ToString(),
-        //        StartTime = gameSession.StartTime.ToString(),
-        //        GameId = gameSession.GameId,
-        //        RoomId = gameSession.RoomId,
-        //        OwnerId = gameSession.OwnerId,
-        //        SessionId = gameSession.SessionId,
-        //        LastUpdated = gameSession.LastUpdated.ToString(),
-        //        SessionState = gameSession.SessionState,
-        //    };
-        //    model.Players.AddRange(gameSession.Players);
-        //    model.PlayerScores.AddRange(gameSession.PlayerScores.Select(p =>
-        //    {
-        //        return new StringIntPair
-        //        {
-        //            Key = p.Key,
-        //            Value = p.Value
-        //        };
-        //    }));
-        //    model.ActionsLog.AddRange(gameSession.ActionsLog.Select(l =>
-        //    {
-        //        return new GameActionRPCModel
-        //        {
-        //            ActionType = l.ActionType,
-        //            Payload = JsonSerializer.Serialize(l.Payload),
-        //            PlayerId = l.PlayerId,
-        //            Timestamp = l.Timestamp.ToString()
-        //        };
-        //    }));
-        //    reply.IsSuccess = true;
-        //    reply.GameSession = model;
-        //}
-        //catch (Exception ex)
-        //{
-        //    logger.LogError(ex, "An error occurred while retrieving the session");
-        //}
+        var gameSession = await gameSessionService.GetGameSession(request.SessionId);
+        if(gameSession is null)
+        {
+            reply.ErrorMessage = ErrorMessages.SessionIdNotExist;
+            return reply;
+        }
+        GameSessionRPCModel model = new GameSessionRPCModel()
+        {
+            EndTime = gameSession.EndTime.ToString(),
+            StartTime = gameSession.StartTime.ToString(),
+            GameId = gameSession.GameId,
+            RoomId = gameSession.RoomId,
+            OwnerId = gameSession.OwnerId,
+            SessionId = gameSession.SessionId,
+            LastUpdated = gameSession.LastUpdated.ToString(),
+            SessionState = gameSession.SessionState,
+        };
+        model.Players.AddRange(gameSession.Players);
+        model.PlayerScores.AddRange(gameSession.PlayerScores.Select(p =>
+        {
+            return new StringIntPair
+            {
+                Key = p.Key,
+                Value = p.Value
+            };
+        }));
+        model.ActionsLog.AddRange(gameSession.ActionsLog.Select(l =>
+        {
+            return new GameActionRPCModel
+            {
+                ActionType = l.ActionType,
+                Payload = JsonSerializer.Serialize(l.Payload),
+                PlayerId = l.PlayerId,
+                Timestamp = l.Timestamp.ToString()
+            };
+        }));
+        reply.IsSuccess = true;
+        reply.GameSession = model;
 
 
         return reply;

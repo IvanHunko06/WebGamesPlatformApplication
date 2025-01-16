@@ -36,7 +36,7 @@ public sealed class GameSessionRabbitMqService : BaseRabbitMqGameSessionListener
         var session = await gameSessionService.GetGameSession(request.SessionId);
         if(session is null)
         {
-            reply.ErrorMessage = ErrorMessages.SeasonNotFound;
+            reply.ErrorMessage = ErrorMessages.SessionIdNotExist;
             return reply;
         }
         reply.IsSuccess = true;
