@@ -7,6 +7,7 @@ using SharedApiUtils.Abstractons;
 using SharedApiUtils.gRPC.ServicesAccessing.Protos;
 namespace MatchHistoryService.Services;
 
+[Authorize(Policy = "AdminOrPrivateClient")]
 public class MatchHistoryRpcService : MatchesHistory.MatchesHistoryBase
 {
     private readonly IMatchHistoryService matchHistoryService;
@@ -16,7 +17,6 @@ public class MatchHistoryRpcService : MatchesHistory.MatchesHistoryBase
         this.matchHistoryService = matchHistoryService;
     }
 
-    [Authorize(Policy = "AdminOrPrivateClient")]
     public override async Task<GetMatchesInfoReply> GetMatchesInfo(Empty request, ServerCallContext context)
     {
         var reply = new GetMatchesInfoReply();
@@ -47,7 +47,6 @@ public class MatchHistoryRpcService : MatchesHistory.MatchesHistoryBase
         return reply;
     }
 
-    [Authorize(Policy = "AllAuthenticatedUsers")]
     public override async Task<GetMatchesInfoForPlayerReply> GetMatchesInfoForPlayer(GetMatchesInfoForPlayerRequest request, ServerCallContext context)
     {
         var reply = new GetMatchesInfoForPlayerReply();
@@ -82,7 +81,6 @@ public class MatchHistoryRpcService : MatchesHistory.MatchesHistoryBase
         return reply;
     }
 
-    [Authorize(Policy = "AdminOrPrivateClient")]
     public override async Task<AddMatchInfoReply> AddMatchInfo(MatchInfo request, ServerCallContext context)
     {
         var reply = new AddMatchInfoReply();
@@ -107,7 +105,6 @@ public class MatchHistoryRpcService : MatchesHistory.MatchesHistoryBase
         return reply;
     }
 
-    [Authorize(Policy = "AdminOrPrivateClient")]
     public override async Task<DeleteMatchInfoReply> DeleteMatchInfo(DeleteMatchInfoRequest request, ServerCallContext context)
     {
         var reply = new DeleteMatchInfoReply();
