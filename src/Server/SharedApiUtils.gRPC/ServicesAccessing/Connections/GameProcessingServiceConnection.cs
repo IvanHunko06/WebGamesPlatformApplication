@@ -22,7 +22,7 @@ public class GameProcessingServiceConnection
             {
                 httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
             }
-            string token = await tokenAccessor.GetNewToken();
+            string token = await tokenAccessor.GetPrivateClientToken();
             if (string.IsNullOrEmpty(token))
                 return default;
 

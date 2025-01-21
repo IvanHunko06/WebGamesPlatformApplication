@@ -27,7 +27,7 @@ public class GamesServiceConnection
     {
         try
         {
-            string token = await tokenAccessor.GetNewToken();
+            string token = await tokenAccessor.GetPrivateClientToken();
             if (string.IsNullOrEmpty(token))
                 return default;
 

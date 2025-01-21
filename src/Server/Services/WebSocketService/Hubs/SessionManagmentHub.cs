@@ -76,7 +76,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
                 return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
             string? userId = userContext.GetUserId(Context);
             if (userId is null)
-                return new HubActionResult(false, ErrorMessages.SubjectClaimNotFound, null);
+                return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
             
             try
             {
@@ -110,7 +110,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
 
         string? userId = userContext.GetUserId(Context);
         if (string.IsNullOrEmpty(userId))
-            return new HubActionResult(false, ErrorMessages.SubjectClaimNotFound, null);
+            return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
 
         try
         {
@@ -149,7 +149,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
             return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
         string? userId = userContext.GetUserId(Context);
         if (string.IsNullOrEmpty(userId))
-            return new HubActionResult(false, ErrorMessages.SubjectClaimNotFound, null);
+            return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
 
         try
         {
@@ -174,7 +174,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
             return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
         string? userId = userContext.GetUserId(Context);
         if (string.IsNullOrEmpty(userId))
-            return new HubActionResult(false, ErrorMessages.SubjectClaimNotFound, null);
+            return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
         try
         {
             await roomSessionHandlerService.StartGame(roomId, userId);
@@ -198,7 +198,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
                 return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
             string? userId = userContext.GetUserId(Context);
             if (string.IsNullOrEmpty(userId))
-                return new HubActionResult(false, ErrorMessages.SubjectClaimNotFound, null);
+                return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
 
             SessionInformation sessionInformation = await gameSessionHandlerService.GetSessionInformation(sessionId, userId);
             return new HubActionResult(true, null, sessionInformation);
@@ -221,7 +221,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
                 return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
             string? userId = userContext.GetUserId(Context);
             if (string.IsNullOrEmpty(userId))
-                return new HubActionResult(false, ErrorMessages.SubjectClaimNotFound, null);
+                return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
             string gameState = await gameSessionHandlerService.SyncGameState(sessionId, userId);
             return new HubActionResult(true, null, gameState);
         }
@@ -241,7 +241,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
             logger.LogInformation($"SyncGameState request for session {sessionId}");
             string? userId = userContext.GetUserId(Context);
             if (string.IsNullOrEmpty(userId))
-                return new HubActionResult(false, ErrorMessages.SubjectClaimNotFound, null);
+                return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
             string? gameErrorMessage = await gameSessionHandlerService.MakeAction(userId, sessionId, action, payload);
             return new HubActionResult(true, null, gameErrorMessage);
         }

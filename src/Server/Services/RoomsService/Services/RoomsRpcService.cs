@@ -25,7 +25,7 @@ public class RoomsRpcService : Rooms.RoomsBase
         string? userId = userContextService.GetUserId(context);
         if (userId is null)
         {
-            reply.ErrorMessage = ErrorMessages.SubjectClaimNotFound;
+            reply.ErrorMessage = ErrorMessages.PreferedUsernameClaimNotFound;
             return reply;
         }
         var createResult = await roomsService.CreateRoom(request.GameId, request.RoomName, userId, request.IsPrivate, request.SelectedPlayersCount);
@@ -62,7 +62,7 @@ public class RoomsRpcService : Rooms.RoomsBase
         string? userId = userContextService.GetUserId(context);
         if (userId is null)
         {
-            reply.ErrorMessage = ErrorMessages.SubjectClaimNotFound;
+            reply.ErrorMessage = ErrorMessages.PreferedUsernameClaimNotFound;
             return reply;
         }
         string? errorMessage = await roomsService.DeleteRoom(request.RoomId, userId);

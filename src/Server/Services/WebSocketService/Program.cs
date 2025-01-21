@@ -22,18 +22,12 @@ builder.Services.AddSignalR(options =>
     options.EnableDetailedErrors = true;
 });
 var configuration = builder.Configuration;
-string[] corsDomains = configuration.GetRequiredSection("CorsDomains").Get<string[]>() ?? throw new ArgumentNullException("Cors domains is null");
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowApiGateway", builder =>
-    builder
-    .WithOrigins(corsDomains)
-    .AllowAnyHeader()
-    .AllowAnyMethod()
-    .AllowCredentials());
-});
 
-builder.Services.AddAuthenticationTokenAccessor(configuration);
+builder.Services.AddSingleton(
+    new AuthenticationTokenAccessorBuilder()
+        .SetPrivateTokenInfo(builder.Configuration.GetRequiredSection("PrivateAccessToken"))
+        .Build()
+);
 builder.Services.AddScoped<GamesServiceConnection>();
 builder.Services.AddScoped<RoomsServiceConnection>();
 builder.Services.AddScoped<GameSessionConnection>();
