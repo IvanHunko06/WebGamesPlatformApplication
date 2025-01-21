@@ -39,7 +39,7 @@ using (var scope = app.Services.CreateScope())
     var matchHistoryService = services.GetRequiredService<MatchHistoryRabbitMqService>();
     await matchHistoryService.StartListening();
 }
-
+app.UseCors("AllowApiGateway");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
