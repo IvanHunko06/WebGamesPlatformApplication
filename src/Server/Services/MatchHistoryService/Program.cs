@@ -3,6 +3,7 @@ using MatchHistoryService.Interfaces;
 using MatchHistoryService.Repositories;
 using MatchHistoryService.Services;
 using Microsoft.EntityFrameworkCore;
+using SharedApiUtils.Abstractons;
 using SharedApiUtils.Abstractons.Authentication;
 using SharedApiUtils.RabbitMq;
 
@@ -20,6 +21,7 @@ builder.Services.AddScoped<IMatchInfoRepository, SqlServerMatchInfoRepository>()
 builder.Services.AddScoped<IMatchHistoryService, MatchHistoryService.Services.MatchHistoryService>();
 builder.Services.AddCustomRabbitMq(builder.Configuration);
 builder.Services.AddSingleton<MatchHistoryRabbitMqService>();
+builder.Services.AddScoped<UserContextService>();
 builder.Services.AddControllers();
 var app = builder.Build();
 
