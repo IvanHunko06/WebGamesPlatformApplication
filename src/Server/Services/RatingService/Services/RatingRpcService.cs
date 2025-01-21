@@ -6,6 +6,7 @@ using SharedApiUtils.Abstractons;
 using SharedApiUtils.gRPC.ServicesAccessing.Protos;
 namespace RatingService.Services;
 
+[Authorize(Policy = "AdminOrPrivateClient")]
 public class RatingRpcService : Rating.RatingBase
 {
     private readonly IRatingService ratingService;
@@ -16,7 +17,6 @@ public class RatingRpcService : Rating.RatingBase
         this.ratingService = ratingService;
     }
 
-    [Authorize(Policy = "AdminOrPrivateClient")]
     public async override Task<SetLastSeasonUserScoreReply> SetLastSeasonUserScore(SetLastSeasonUserScoreRequest request, ServerCallContext context)
     {
         var response = new SetLastSeasonUserScoreReply();
@@ -36,7 +36,6 @@ public class RatingRpcService : Rating.RatingBase
     }
 
 
-    [Authorize(Policy = "AllAuthenticatedUsers")]
     public override async Task<GetUserScoreReply> GetUserScore(GetUserScoreRequest request, ServerCallContext context)
     {
         var reply = new GetUserScoreReply();
@@ -53,7 +52,6 @@ public class RatingRpcService : Rating.RatingBase
         return reply;
     }
 
-    [Authorize(Policy = "AllAuthenticatedUsers")]
     public override async Task<GetRatingListReply> GetRatingList(GetRatingListRequest request, ServerCallContext context)
     {
         var reply = new GetRatingListReply();
@@ -69,7 +67,6 @@ public class RatingRpcService : Rating.RatingBase
         return reply;
     }
 
-    [Authorize(Policy = "AllAuthenticatedUsers")]
     public override async Task<GetSeasonsListReply> GetSeasonsList(Empty request, ServerCallContext context)
     {
         var reply = new GetSeasonsListReply();
