@@ -204,7 +204,34 @@ public class ProfileService : IProfileService
             return ErrorMessages.InternalServerError;
         }
     }
-    
+    public async Task<bool> UpdateProfile(string username, UpdateProfileRequestDto requestDto)
+    {
+        try
+        {
+            var profileEntity = await profilesRepository.GetProfileByUsername(username);
+            if (profileEntity is null)
+            {
+                logger.LogWarning($"Profile {username} is null");
+                return false;
+            }
+            if (requestDto.DayOfBirthday is not null)
+                profileEntity.DOB = requestDto.DayOfBirthday;
+
+            if (!string.IsNullOrEmpty(requestDto.PublicName?.Trim()))
+                profileEntity.PublicName = requestDto.PublicName.Trim();
+
+            await profilesRepository.UpdateProfile(profileEntity);
+            logger.LogInformation($"Profile {username} has been updated");
+            return true;
+        }
+        catch(Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while changing profile data");
+            return false;
+        }
+    }
+
+
     public async Task<List<ProfileIconModel>> GetProfileIcons()
     {
         try
