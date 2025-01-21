@@ -13,13 +13,13 @@ namespace ProfileService.Controllers;
 public class ProfileServiceController : ControllerBase
 {
     private readonly IProfileService profileService;
-    private readonly UsernameUserContextService userContextService;
+    private readonly UserContextService userContextService;
     private readonly AuthSettings authSettings;
 
     public ProfileServiceController(
         IProfileService profileService,
         IOptions<AuthSettings> authSettings,
-        UsernameUserContextService userContextService)
+        UserContextService userContextService)
     {
         this.profileService = profileService;
         this.userContextService = userContextService;
@@ -162,6 +162,25 @@ public class ProfileServiceController : ControllerBase
         return NoContent();
     }
 
+
+    [Authorize(Policy = "OnlyPublicClient")]
+    [HttpPut("profile/{username}/update")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequestDto request, [FromRoute] string username)
+    {
+        var profile = await profileService.GetProfile(username);
+        if (profile is null) return NotFound();
+
+        string? userId = userContextService.GetUserId(HttpContext);
+        if (string.IsNullOrEmpty(userId))
+            return BadRequest(ErrorMessages.PreferedUsernameClaimNotFound);
+
+        if (!User.IsInRole(authSettings.AdminRoleClaim) && profile.Username != userId)
+            return Forbid();
+
+        var isSuccess = await profileService.UpdateProfile(username, request);
+        if (isSuccess) return NoContent();
+        else return StatusCode(500);
+    }
 
     [Authorize(Policy = "AdminOrPrivateClient")]
     [HttpPost("AddProfileIcon")]

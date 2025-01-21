@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using RatingService.Clients;
 using RatingService.Interfaces;
 using RatingService.Models;
 using SharedApiUtils.Abstractons;
+using SharedApiUtils.Abstractons.Authentication;
 
 namespace RatingService.Services;
 
@@ -11,10 +14,20 @@ namespace RatingService.Services;
 public class RatingServiceController : ControllerBase
 {
     private readonly IRatingService ratingService;
+    private readonly AuthSettings authSettings;
+    private readonly UserContextService userContext;
+    private readonly ProfileServiceHttpClient profileService;
 
-    public RatingServiceController(IRatingService ratingService)
+    public RatingServiceController(
+        IRatingService ratingService, 
+        IOptions<AuthSettings> authSettings,
+        UserContextService userContext,
+        ProfileServiceHttpClient profileService)
     {
         this.ratingService = ratingService;
+        this.authSettings = authSettings.Value;
+        this.userContext = userContext;
+        this.profileService = profileService;
     }
 
     [Authorize(Policy = "AllAuthenticatedUsers")]
@@ -37,12 +50,39 @@ public class RatingServiceController : ControllerBase
     }
 
     [Authorize(Policy = "AllAuthenticatedUsers")]
-    [HttpGet("/{seasonId:int}/{**userId}")]
-    public async Task<IActionResult> GetUserScore([FromRoute] int seasonId, [FromRoute] string userId)
+    [HttpGet("GetScore/{seasonId:int}/{**targetUserId}")]
+    public async Task<IActionResult> GetUserScore([FromRoute] int seasonId, [FromRoute] string targetUserId)
     {
-        var userScore = await ratingService.GetUserScore(userId, seasonId);
-        if (userScore is null) return NotFound(ErrorMessages.NoUserScore);
-        return Ok(userScore);
+        string? userIdClaim = userContext.GetUserId(HttpContext);
+        if(string.IsNullOrEmpty(userIdClaim))return BadRequest(ErrorMessages.PreferedUsernameClaimNotFound);
+
+        if (User.IsInRole(authSettings.AdminRoleClaim))
+        {
+            var userScore = await ratingService.GetUserScore(targetUserId, seasonId);
+            if (userScore is null) return NotFound(ErrorMessages.NoUserScore);
+            return Ok(userScore);
+        }
+        if(userIdClaim == targetUserId)
+        {
+            var userScore = await ratingService.GetUserScore(targetUserId, seasonId);
+            if (userScore is null) return NotFound(ErrorMessages.NoUserScore);
+            return Ok(userScore);
+        }
+        bool? isPrivateProfile = await profileService.UserProfileIsPrivate(targetUserId);
+        if (isPrivateProfile is null)
+            return StatusCode(500);
+
+        if (!isPrivateProfile.Value)
+        {
+            var userScore = await ratingService.GetUserScore(targetUserId, seasonId);
+            if (userScore is null) return NotFound(ErrorMessages.NoUserScore);
+            return Ok(userScore);
+        }
+        else
+        {
+            return Forbid();
+        }
+        
     }
 
     [Authorize(Policy = "AdminOrPrivateClient")]

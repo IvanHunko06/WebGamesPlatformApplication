@@ -2,8 +2,6 @@
 using GameSessionService.Interfaces;
 using SharedApiUtils.Abstractons;
 using SharedApiUtils.Abstractons.Interfaces.Clients;
-using SharedApiUtils.gRPC.ServicesAccessing.Protos;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace GameSessionService.Services;
 
@@ -207,6 +205,8 @@ public class GameSessionService : IGameSessionService
                 await NormalSessionFinish(payload ?? "", session);
             else if (reason == EndSessionReason.PlayerDisconnected)
                 await PlayerDisconnectedFinish(payload ?? "", session);
+            else
+                await DefaultSessionFinish(sessionId, reason, payload);
 
             _ = Task.Run(async () =>
             {
@@ -281,10 +281,22 @@ public class GameSessionService : IGameSessionService
     private async Task PlayerDisconnectedFinish(string disconnectedPlayer, Models.GameSessionModel gameSession)
     {
         if (string.IsNullOrEmpty(disconnectedPlayer)) return;
-        gameSession.PlayerScores[disconnectedPlayer] = -5;
-        await gameSessionWsNotifyer.NotifySessionEnded_AllUser(gameSession.SessionId, EndSessionReason.PlayerDisconnected, disconnectedPlayer);
-        string? errorMessage = await ratingService.AddLastSeasonUserScore(disconnectedPlayer, -5);
-        if (!string.IsNullOrEmpty(errorMessage))
-            logger.LogWarning($"an error occurred while updating the user rating. Error message: {errorMessage}");
+        gameSession.PlayerScores[disconnectedPlayer] = (gameSession.Players.Count - 1) * 2 * -1;
+        foreach (var player in gameSession.Players)
+        {
+            if(player == disconnectedPlayer) continue;
+            gameSession.PlayerScores[player] = 2;
+            _ = Task.Run(async () =>
+            {
+                string? errorMessage = await ratingService.AddLastSeasonUserScore(player, gameSession.PlayerScores[player]);
+                if (!string.IsNullOrEmpty(errorMessage))
+                    logger.LogWarning($"an error occurred while updating the user rating. Error message: {errorMessage}");
+            });
+        }
+        await gameSessionWsNotifyer.NotifySessionEnded_AllUser(gameSession.SessionId, EndSessionReason.PlayerDisconnected, disconnectedPlayer); 
+    }
+    private async Task DefaultSessionFinish(string sessionId, string reason, string? payload)
+    {
+        await gameSessionWsNotifyer.NotifySessionEnded_AllUser(sessionId, reason, payload);
     }
 }

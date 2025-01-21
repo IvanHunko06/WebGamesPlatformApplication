@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using RoomsService.Interfaces;
 using RoomsService.Models;
 using SharedApiUtils.Abstractons;
+using SharedApiUtils.gRPC;
 
 namespace RoomsService.Services;
 
@@ -11,9 +12,11 @@ namespace RoomsService.Services;
 public class RoomsServiceController : ControllerBase
 {
     private readonly IRoomsService roomsService;
-    private readonly IUserContextService userContextService;
+    private readonly UserContextService userContextService;
 
-    public RoomsServiceController(IRoomsService roomsService, IUserContextService userContextService)
+    public RoomsServiceController(
+        IRoomsService roomsService,
+        UserContextService userContextService)
     {
         this.roomsService = roomsService;
         this.userContextService = userContextService;

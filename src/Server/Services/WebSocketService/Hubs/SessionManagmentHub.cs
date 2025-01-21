@@ -15,14 +15,14 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
     private readonly ILogger<SessionManagmentHub> logger;
     private readonly SessionManagmentHubState hubState;
     private readonly IRoomSessionHandlerService roomSessionHandlerService;
-    private readonly IUserContextService userContext;
+    private readonly UserContextService userContext;
     private readonly IServiceInternalRepository serviceInternalRepository;
     private readonly IGameSessionHandlerService gameSessionHandlerService;
 
     public SessionManagmentHub(ILogger<SessionManagmentHub> logger,
         SessionManagmentHubState hubState,
+        UserContextService userContext,
         IRoomSessionHandlerService roomSessionHandlerService,
-        IUserContextService userContext,
         IServiceInternalRepository serviceInternalRepository,
         IGameSessionHandlerService gameSessionHandlerService)
     {
@@ -37,7 +37,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
 
     public override async Task OnConnectedAsync()
     {
-        string? userId = userContext.GetUserId(Context);
+        string? userId = userContext.GetUserId(Context.GetHttpContext());
         if (string.IsNullOrEmpty(userId))
         {
             await Clients.Caller.CloseConnection(CloseConnectionReasons.InvalidJwtToken);
@@ -62,7 +62,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
             return;
         }   
         logger.LogInformation($"Client {Context.ConnectionId} has disconnected from SessionManagmentHub");
-        string? userId = userContext.GetUserId(Context);
+        string? userId = userContext.GetUserId(Context.User);
         if (string.IsNullOrEmpty(userId))
             return;
         hubState.UserConnections.RemoveUserConnection(userId, Context.ConnectionId);
@@ -74,7 +74,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
             logger.LogInformation($"{Context.ConnectionId}: join room  request to room {roomId} with access token {accessToken}");
             if (hubState.BlockedClients.Contains(Context.ConnectionId))
                 return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
-            string? userId = userContext.GetUserId(Context);
+            string? userId = userContext.GetUserId(Context.User);
             if (userId is null)
                 return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
             
@@ -108,7 +108,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
         if (hubState.BlockedClients.Contains(Context.ConnectionId))
             return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
 
-        string? userId = userContext.GetUserId(Context);
+        string? userId = userContext.GetUserId(Context.User);
         if (string.IsNullOrEmpty(userId))
             return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
 
@@ -147,7 +147,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
         logger.LogInformation($"{Context.ConnectionId}: leave room  request from room {roomId}");
         if (hubState.BlockedClients.Contains(Context.ConnectionId))
             return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
-        string? userId = userContext.GetUserId(Context);
+        string? userId = userContext.GetUserId(Context.User);
         if (string.IsNullOrEmpty(userId))
             return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
 
@@ -172,7 +172,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
         logger.LogInformation($"{Context.ConnectionId}: start game request for room {roomId}");
         if (hubState.BlockedClients.Contains(Context.ConnectionId))
             return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
-        string? userId = userContext.GetUserId(Context);
+        string? userId = userContext.GetUserId(Context.User);
         if (string.IsNullOrEmpty(userId))
             return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
         try
@@ -196,7 +196,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
             logger.LogInformation($"GetSessionInformation request for session {sessionId}");
             if (hubState.BlockedClients.Contains(Context.ConnectionId))
                 return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
-            string? userId = userContext.GetUserId(Context);
+            string? userId = userContext.GetUserId(Context.User);
             if (string.IsNullOrEmpty(userId))
                 return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
 
@@ -219,7 +219,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
             logger.LogInformation($"SyncGameState request for session {sessionId}");
             if (hubState.BlockedClients.Contains(Context.ConnectionId))
                 return new HubActionResult(false, ErrorMessages.ConnectionBlocked, "");
-            string? userId = userContext.GetUserId(Context);
+            string? userId = userContext.GetUserId(Context.User);
             if (string.IsNullOrEmpty(userId))
                 return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
             string gameState = await gameSessionHandlerService.SyncGameState(sessionId, userId);
@@ -239,7 +239,7 @@ public class SessionManagmentHub : Hub<ISessionManagmentClient>
         try
         {
             logger.LogInformation($"SyncGameState request for session {sessionId}");
-            string? userId = userContext.GetUserId(Context);
+            string? userId = userContext.GetUserId(Context.User);
             if (string.IsNullOrEmpty(userId))
                 return new HubActionResult(false, ErrorMessages.PreferedUsernameClaimNotFound, null);
             string? gameErrorMessage = await gameSessionHandlerService.MakeAction(userId, sessionId, action, payload);

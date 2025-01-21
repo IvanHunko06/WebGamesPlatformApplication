@@ -3,6 +3,7 @@ using ProfileService;
 using ProfileService.Interfaces;
 using ProfileService.Repositories;
 using ProfileService.Services;
+using SharedApiUtils.Abstractons;
 using SharedApiUtils.Abstractons.Authentication;
 using SharedApiUtils.Abstractons.AuthenticationTokenAccessor;
 using SharedApiUtils.Abstractons.Interfaces.Clients;
@@ -25,7 +26,7 @@ builder.Services.AddScoped<IProfilesRepository, SqlServerProfilesRepository>();
 builder.Services.AddScoped<IProfileIconsRepository, SqlServerProfileIconsRepository>();
 builder.Services.AddScoped<IRatingServiceClient, RabbitMqRatingServiceClient>();
 builder.Services.AddScoped<IProfileService, ProfileService.Services.ProfileService>();
-builder.Services.AddScoped<UsernameUserContextService>();
+builder.Services.AddScoped<UserContextService>();
 builder.Services.AddSingleton(
     new AuthenticationTokenAccessorBuilder()
         .SetAdminTokenInfo(builder.Configuration.GetRequiredSection("AdminAccessToken"))

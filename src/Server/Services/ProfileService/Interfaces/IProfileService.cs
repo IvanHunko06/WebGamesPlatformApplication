@@ -10,6 +10,7 @@ public interface IProfileService
     Task<List<ProfileModel>> GetProfiles(List<string> usernames);
     Task UpdateProfilePrivacy(string username, bool isPrivateProfile);
     Task<string?> UpdateProfileIcon(string username, int iconId);
+    Task<bool> UpdateProfile(string username, UpdateProfileRequestDto requestDto);
 
 
     Task<List<ProfileIconModel>> GetProfileIcons();

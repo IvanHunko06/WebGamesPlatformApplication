@@ -2,7 +2,9 @@
 using MatchHistoryService.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using SharedApiUtils.Abstractons;
+using SharedApiUtils.Abstractons.Authentication;
 using SharedApiUtils.gRPC.ServicesAccessing.Protos;
 
 namespace MatchHistoryService.Services;
@@ -12,10 +14,16 @@ namespace MatchHistoryService.Services;
 public class MatchHistoryController : ControllerBase
 {
     private readonly IMatchHistoryService matchHistoryService;
-
-    public MatchHistoryController(IMatchHistoryService matchHistoryService)
+    private readonly UserContextService userContext;
+    private readonly AuthSettings authSettings;
+    public MatchHistoryController(
+        IMatchHistoryService matchHistoryService,
+        IOptions<AuthSettings> authSettings,
+        UserContextService userContext)
     {
         this.matchHistoryService = matchHistoryService;
+        this.userContext = userContext;
+        this.authSettings = authSettings.Value;
     }
     [Authorize(Policy = "AdminOrPrivateClient")]
     [HttpGet("GetMatchesInfo")]
@@ -25,16 +33,37 @@ public class MatchHistoryController : ControllerBase
         return Ok(matchInfos);
     }
     [Authorize(Policy = "AllAuthenticatedUsers")]
-    [HttpGet("GetMatchesInfo/{userId}")]
-    public async Task<IActionResult> GetMatchesInfoForPlayer([FromRoute] string userId)
+    [HttpGet("GetMatchesInfo/{targetUserId}")]
+    public async Task<IActionResult> GetMatchesInfoForPlayer([FromRoute] string targetUserId)
     {
-        var reply = new GetMatchesInfoForPlayerReply();
+        List<MatchInfoModel>? matchesForUser = null;
+        if (User.IsInRole(authSettings.AdminRoleClaim))
+        {
+            matchesForUser = await matchHistoryService.GetAllMatchesForUser(targetUserId);
+            if (matchesForUser is null)
+                return NotFound();
 
-        var matchesForUser = await matchHistoryService.GetAllMatchesForUser(userId);
+            return Ok(matchesForUser);
+        }
+        string? userIdClaim = userContext.GetUserId(HttpContext);
+        if (string.IsNullOrEmpty(userIdClaim))
+            return BadRequest(ErrorMessages.PreferedUsernameClaimNotFound);
+
+        if (userIdClaim != targetUserId)
+            return Forbid();
+
+        matchesForUser = await matchHistoryService.GetAllMatchesForUser(targetUserId);
         if (matchesForUser is null)
             return NotFound();
-
-        return Ok(matchesForUser);
+        var limitedMatchesForUser = matchesForUser.Select(x => new LimitedMatchInfoModel()
+        {
+            FinishReason = x.FinishReason,
+            GameId = x.GameId,
+            TimeBegin = x.TimeBegin,
+            TimeEnd = x.TimeEnd,
+            GainedScore = x.UserScoreDelta.Where(r => r.Key == targetUserId).Select(r => r.Value).First()
+        }).ToList();
+        return Ok(limitedMatchesForUser);
     }
 
     [Authorize(Policy = "AdminOrPrivateClient")]

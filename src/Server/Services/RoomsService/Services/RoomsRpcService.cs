@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using RoomsService.Interfaces;
 using SharedApiUtils.Abstractons;
+using SharedApiUtils.gRPC;
 using SharedApiUtils.gRPC.ServicesAccessing.Protos;
 namespace RoomsService.Services;
 
@@ -10,9 +11,11 @@ public class RoomsRpcService : Rooms.RoomsBase
 
 
     private readonly IRoomsService roomsService;
-    private readonly IUserContextService userContextService;
+    private readonly UserContextService userContextService;
 
-    public RoomsRpcService(IRoomsService roomsService, IUserContextService userContextService)
+    public RoomsRpcService(
+        IRoomsService roomsService,
+        UserContextService userContextService)
     {
         this.roomsService = roomsService;
         this.userContextService = userContextService;
@@ -22,7 +25,7 @@ public class RoomsRpcService : Rooms.RoomsBase
     public override async Task<CreateRoomReply> CreateRoom(CreateRoomRequest request, ServerCallContext context)
     {
         CreateRoomReply reply = new CreateRoomReply();
-        string? userId = userContextService.GetUserId(context);
+        string? userId = userContextService.GetUserId(context.GetHttpContext());
         if (userId is null)
         {
             reply.ErrorMessage = ErrorMessages.PreferedUsernameClaimNotFound;
@@ -59,7 +62,7 @@ public class RoomsRpcService : Rooms.RoomsBase
     public override async Task<DeleteRoomReply> DeleteOwnRoom(DeleteRoomRequest request, ServerCallContext context)
     {
         DeleteRoomReply reply = new DeleteRoomReply();
-        string? userId = userContextService.GetUserId(context);
+        string? userId = userContextService.GetUserId(context.GetHttpContext());
         if (userId is null)
         {
             reply.ErrorMessage = ErrorMessages.PreferedUsernameClaimNotFound;

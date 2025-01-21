@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using RatingService;
+using RatingService.Clients;
 using RatingService.Interfaces;
 using RatingService.Repositories;
 using RatingService.Services;
+using SharedApiUtils.Abstractons;
 using SharedApiUtils.Abstractons.Authentication;
+using SharedApiUtils.Abstractons.AuthenticationTokenAccessor;
+using SharedApiUtils.Abstractons.ExternalServices;
 using SharedApiUtils.RabbitMq;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +23,14 @@ builder.Services.AddScoped<IRatingRepository, SqlServerRatingRepository>();
 builder.Services.AddScoped<IRatingService, RatingService.Services.RatingService>();
 builder.Services.AddCustomRabbitMq(builder.Configuration);
 builder.Services.AddSingleton<RatingRabbitMqService>();
+builder.Services.AddScoped<UserContextService>();
+builder.Services.AddAccessingConfiguration(builder.Configuration);
+builder.Services.AddSingleton(
+    new AuthenticationTokenAccessorBuilder()
+        .SetPrivateTokenInfo(builder.Configuration.GetRequiredSection("PrivateAccessToken"))
+        .Build()
+);
+builder.Services.AddScoped<ProfileServiceHttpClient>();
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
