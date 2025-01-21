@@ -41,6 +41,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharedApiUtils.RabbitMq", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedApiUtils.Abstractons", "Server\SharedApiUtils.Abstractons\SharedApiUtils.Abstractons.csproj", "{C4EECFD8-BA22-4956-B30C-AE79CF483912}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProfileService", "Server\Services\ProfileService\ProfileService.csproj", "{6939C00E-8A49-4CA4-9CA7-4C1E8A796665}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,10 @@ Global
 		{C4EECFD8-BA22-4956-B30C-AE79CF483912}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C4EECFD8-BA22-4956-B30C-AE79CF483912}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C4EECFD8-BA22-4956-B30C-AE79CF483912}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6939C00E-8A49-4CA4-9CA7-4C1E8A796665}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6939C00E-8A49-4CA4-9CA7-4C1E8A796665}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6939C00E-8A49-4CA4-9CA7-4C1E8A796665}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6939C00E-8A49-4CA4-9CA7-4C1E8A796665}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -115,6 +121,7 @@ Global
 		{645D3943-97D4-4F62-B551-7713D2AEE01D} = {04804327-2DB6-49AA-8D92-4341DAE43BBB}
 		{99A33680-7BE5-4C6D-970F-D7240582C2E0} = {04804327-2DB6-49AA-8D92-4341DAE43BBB}
 		{C4EECFD8-BA22-4956-B30C-AE79CF483912} = {04804327-2DB6-49AA-8D92-4341DAE43BBB}
+		{6939C00E-8A49-4CA4-9CA7-4C1E8A796665} = {239AA768-5499-4C05-A2AB-9D9C3E820ACE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6AB9FAB0-B9A1-4B9F-99D4-0E28B4FC0B79}
