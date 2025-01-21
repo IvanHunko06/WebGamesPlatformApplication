@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using SharedApiUtils.gRPC.ServicesAccessing;
 
-namespace SharedApiUtils.gRPC;
+namespace SharedApiUtils.Abstractons.ExternalServices;
 
 public static class AccessingConfigurationConfig
 {
@@ -22,7 +16,8 @@ public static class AccessingConfigurationConfig
             MatchHistoryServiceUrl = configuration["ExternalServices:MatchHistoryService"],
             RatingServiceUrl = configuration["ExternalServices:RatingService"],
             WebSocketServiceUrl = configuration["ExternalServices:WebSocketService"],
-            RoomsEventsHandlerUrl = configuration["ExternalServices:RoomsEventsHandler"]
+            RoomsEventsHandlerUrl = configuration["ExternalServices:RoomsEventsHandler"],
+            ProfileServiceUrl = configuration["ExternalServices:ProfileService"]
         });
         return services;
     }

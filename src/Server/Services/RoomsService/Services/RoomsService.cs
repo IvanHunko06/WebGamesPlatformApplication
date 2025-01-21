@@ -16,7 +16,9 @@ public class RoomsService : IRoomsService
     private readonly ICacheRepository cacheRepository;
     private static readonly SemaphoreSlim roomSemaphore = new SemaphoreSlim(1, 1);
 
-    public RoomsService(ILogger<RoomsService> logger, IRoomRepository roomRepository,
+    public RoomsService(
+        ILogger<RoomsService> logger, 
+        IRoomRepository roomRepository,
         IGamesServiceClient gamesServiceClient,
         IRoomEventNotifier roomEventNotifier,
         RoomValidationService roomValidationService,
