@@ -17,7 +17,11 @@ builder.Services.AddCustomAuthentication(builder.Configuration);
 builder.Services.AddScoped<RedisHelper>();
 builder.Services.AddGrpc();
 
-builder.Services.AddAuthenticationTokenAccessor(builder.Configuration);
+builder.Services.AddSingleton(
+    new AuthenticationTokenAccessorBuilder()
+        .SetPrivateTokenInfo(builder.Configuration.GetRequiredSection("PrivateAccessToken"))
+        .Build()
+);
 builder.Services.AddScoped<GamesServiceConnection>();
 builder.Services.AddScoped<RoomsEventsConnection>();
 builder.Services.AddAccessingConfiguration(builder.Configuration);
@@ -40,6 +44,7 @@ using (var scope = app.Services.CreateScope())
     var roomsEventListener = services.GetRequiredService<RoomsRabbitMqService>();
     await roomsEventListener.StartListening();
 }
+app.UseCors("AllowApiGateway");
 app.UseAuthentication();
 app.UseAuthorization();
 

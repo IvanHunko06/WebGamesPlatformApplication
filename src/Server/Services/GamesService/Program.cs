@@ -28,6 +28,7 @@ using (var scope = app.Services.CreateScope())
         await context.Database.MigrateAsync();
     }
 }
+app.UseCors("AllowApiGateway");
 
 app.UseAuthentication();
 app.UseAuthorization();

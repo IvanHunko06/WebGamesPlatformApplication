@@ -163,7 +163,11 @@ public class RoomSessionHandlerService : IDisposable, IRoomSessionHandlerService
             _ = Task.Run(async () =>
             {
                 string? sessionId = await serviceInternalRepository.GetRoomSession(roomId);
-                if (string.IsNullOrEmpty(sessionId)) return;
+                if (string.IsNullOrEmpty(sessionId))
+                {
+                    logger.LogWarning($"Room {roomId} session is null");
+                    return;
+                }
                 await gameSessionHandlerService.EndSession(sessionId, EndSessionReason.PlayerDisconnected, userId);
             });
         }

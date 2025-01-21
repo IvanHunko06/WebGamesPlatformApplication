@@ -124,6 +124,19 @@ public static class AuthenticationConfig
                 policy.AuthenticationSchemes.Add("PrivateClientScheme");
             });
         });
+        string[]? corsDomains = configuration.GetSection("CorsDomains").Get<string[]>();
+        if(corsDomains is not null)
+        {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowApiGateway", builder =>
+                builder
+                .WithOrigins(corsDomains)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials());
+            });
+        }
         return services;
     }
 }

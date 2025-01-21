@@ -36,6 +36,7 @@ using (var scope = app.Services.CreateScope())
     var ratingService = services.GetRequiredService<RatingRabbitMqService>();
     await ratingService.StartListening();
 }
+app.UseCors("AllowApiGateway");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGrpcService<RatingService.Services.RatingRpcService>();

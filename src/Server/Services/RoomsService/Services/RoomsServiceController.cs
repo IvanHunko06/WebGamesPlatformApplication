@@ -26,7 +26,7 @@ public class RoomsServiceController : ControllerBase
         string? userId = userContextService.GetUserId(Request.HttpContext);
         if (userId is null)
         {
-            reply.ErrorMessage = ErrorMessages.SubjectClaimNotFound;
+            reply.ErrorMessage = ErrorMessages.PreferedUsernameClaimNotFound;
             return BadRequest(reply);
         }
 
@@ -54,7 +54,7 @@ public class RoomsServiceController : ControllerBase
     {
         string? userId = userContextService.GetUserId(Request.HttpContext);
         if (userId is null)
-            return BadRequest(ErrorMessages.SubjectClaimNotFound);
+            return BadRequest(ErrorMessages.PreferedUsernameClaimNotFound);
 
         string? errorMessage = await roomsService.DeleteRoom(roomId, userId);
         if (string.IsNullOrEmpty(errorMessage)) return NoContent();

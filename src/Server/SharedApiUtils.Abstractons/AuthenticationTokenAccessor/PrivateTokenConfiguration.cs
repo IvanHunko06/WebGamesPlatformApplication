@@ -1,6 +1,6 @@
 ﻿namespace SharedApiUtils.Abstractons.AuthenticationTokenAccessor;
 
-public class TokenAccessorConfiguration
+public class PrivateTokenConfiguration
 {
     public bool IgnoreSslVerification { get; set; }
     public string AuthenticationUrl { get; set; }

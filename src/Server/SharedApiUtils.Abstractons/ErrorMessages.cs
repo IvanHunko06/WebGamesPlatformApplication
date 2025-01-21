@@ -6,8 +6,11 @@ public static class ErrorMessages
     public static string TimeoutExceeded { get; } = "TIMEOUT_EXCEEDED";
     public static string ConnectionBlocked { get; } = "CONNECTION_BLOCKED";
 
+    public static string UsernameNotExist { get; } = "USERNAME_NOT_EXIST";
+    public static string ProfileIconIdNotExist { get; } = "PROFILE_ICON_ID_NOT_EXIST";
+
     public static string GameIdNotValid { get; } = "GAME_ID_INVALID";
-    public static string SubjectClaimNotFound { get; } = "SUBJECT_CLAIM_NOT_FOUND";
+    public static string PreferedUsernameClaimNotFound { get; } = "PREFERED_USERNAME_CLAIM_NOT_FOUND";
     public static string RoomIdNotExist { get; } = "ROOM_ID_NOT_EXIST";
     public static string NotAllowed { get; } = "NOT_ALLOWED";
 
