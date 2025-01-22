@@ -24,7 +24,7 @@ public class RatingRabbitMqService : BaseRabbitMqRatingServiceListener
 
     protected override async Task<AddLastSeasonUserScoreReply> AddLastSeasonUserScore(AddLastSeasonUserScoreRequest request)
     {
-        logger.LogInformation($"Adding {request.AddScore} to user {request.UserId} score");
+        logger.LogInformation($"Adding {request.AddScore} to {request.UserId} score");
 
         var reply = new AddLastSeasonUserScoreReply();
         var season = await ratingService.GetCurrentSeason();
@@ -39,6 +39,8 @@ public class RatingRabbitMqService : BaseRabbitMqRatingServiceListener
         else
             currentScore += request.AddScore;
 
+        if (currentScore.Value < 0)
+            currentScore = 0;
         string? errorMessage = await ratingService.AddOrUpdateUserScore(season.SeasonId, request.UserId, currentScore.Value);
         if(string.IsNullOrEmpty(errorMessage))
             reply.IsSuccess = true;

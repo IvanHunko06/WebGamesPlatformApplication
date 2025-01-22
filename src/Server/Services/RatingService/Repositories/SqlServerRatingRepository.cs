@@ -45,6 +45,7 @@ public class SqlServerRatingRepository : IRatingRepository
         try
         {
             var seasons = await dbContext.Seasons
+            .AsNoTracking()
             .OrderByDescending(x => x.DateEnd)
             .ToListAsync();
             return seasons;
@@ -100,6 +101,7 @@ public class SqlServerRatingRepository : IRatingRepository
         try
         {
             var userScore = await dbContext.UserScores
+            .AsNoTracking()
             .Where(x => x.UserId == userId && x.SeasonId == seasonId)
             .FirstOrDefaultAsync();
 
