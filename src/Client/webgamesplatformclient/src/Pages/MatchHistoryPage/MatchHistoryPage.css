@@ -1,0 +1,92 @@
+.match-history-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #f0fff4; 
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    max-width: 800px;
+  }
+  
+  .match-history-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .match-history-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #006400; /* Dark green text */
+  }
+  
+  .match-history-table-container {
+    width: 100%;
+    overflow-x: auto; /* Добавляем горизонтальный скролл */
+  }
+  
+  .match-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+  }
+  
+  .match-history-table th,
+  .match-history-table td {
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid #ccc;
+    font-size: 1rem;
+  }
+  
+  .match-history-table th {
+    background-color: #c8e6c9; 
+    font-weight: 600;
+  }
+  
+  .match-history-table tr {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .match-history-table tr::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent, #a9f7aba9, transparent); /* Light green shine */
+    transform: skewX(-40deg);
+    transition: all 0.3s ease;
+  }
+  
+  .match-history-table tr:hover::before {
+    animation: row-shine 1s ease-in-out forwards;
+  }
+  
+  @keyframes row-shine {
+    0% {
+      left: -100%;
+    }
+    100% {
+      left: 100%;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .match-history-container {
+      width: 90%;
+      padding: 15px;
+    }
+  
+    .match-history-table th,
+    .match-history-table td {
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+  }
+  

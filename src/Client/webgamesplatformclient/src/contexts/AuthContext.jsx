@@ -7,8 +7,6 @@ const AuthContext = createContext();
     const [isLogged, setIsLogged] = useState(false);
     let kc = useRef(null);
 
-
-
     const login = useCallback((initOptions)=>{
       kc.current = new Keycloak(initOptions);
       kc.current.init({
@@ -35,12 +33,14 @@ const AuthContext = createContext();
       });
 
     },[]);
+
     const logout = useCallback(()=>{
       setIsLogged(false);
       kc.current.logout({
         redirectUri: 'http://localhost:5173/'
       });
     },[]);
+
     const getToken = useCallback(()=>{
       if(isLogged){
         return kc.current.token;
@@ -49,6 +49,7 @@ const AuthContext = createContext();
         return "";
       }
     }, [isLogged]);
+
     const authContext = useMemo(()=>({
       isLogged,
       logout,
@@ -58,12 +59,34 @@ const AuthContext = createContext();
     useEffect(()=>{
       if(!kc.current){
         login({
-          url: 'https://25.31.1.44:7005/auth/',
+          url: 'https://localhost:7005/auth/',
           realm: 'WebGamesPlatform',
           clientId: 'public-client',
         });
       }
     }, [login]);
+
+    const refreshToken = useCallback(async ()=>{
+      if(isLogged){
+          console.log("Refresh Token used")
+          let refreshed = await kc.current.updateToken(5);
+          if (refreshed) {
+            console.log('Token was successfully refreshed');
+          } else {
+            console.log('Token is still valid');
+          }
+      }
+    },[isLogged]);
+
+    useEffect(() => {
+
+      const interval = setInterval(() => {
+        refreshToken();
+      }, 5 * 60 * 1000);
+      return () => {
+        clearInterval(interval);
+      };
+    }, [refreshToken]);
 
     return (
       <AuthContext.Provider value={authContext}>

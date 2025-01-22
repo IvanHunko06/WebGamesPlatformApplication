@@ -4,16 +4,27 @@ import Footer from './components/Footer/Footer';
 import HomePage from './Pages/HomePage/HomePage';
 import GamesPage from './Pages/GamesPage/GamesPage';
 import LeaderPage from './Pages/LeaderPage/LeaderPage'; 
+import ProfilePage from './Pages/ProfilePage/ProfilePage'; 
 import JoinRoomPage from './Pages/JoinRoomPage/JoinRoomPage';
 import { SignalRProvider } from './contexts/SignalRContext';
 import './App.css'
+import './components/Header/Header.css'
+import { useAuth } from './contexts/AuthContext';
+import { useJwt } from './contexts/JwtTokenContext';
 import RoomPage from './Pages/RoomPage/RoomPage';
 import SessionPage from './Pages/SessionPage/SessionPage';
+import RoomsList from './Pages/RoomsListPage/RoomsListPage';
+import RouteChangeHandler from './Pages/RouteChangeHandler';
+import MatchHistoryPage from './Pages/MatchHistoryPage/MatchHistoryPage';
 function MainApp(){
+    const { logout } = useAuth();
+    const { getUsername } = useJwt();
+ 
     return (
         <Router>
-            <Header/>
+            <Header logout={logout} name={getUsername()} /> 
             <SignalRProvider hubUrl="https://localhost:7005/api/hubs/session-managment-hub">
+                <RouteChangeHandler/>
                 <Routes>
                     <Route path="/join/:roomId" element={<JoinRoomPage/>}/>
                     <Route path="/room/:roomId" element={<RoomPage/>}/>
@@ -25,11 +36,12 @@ function MainApp(){
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/leaderboard" element={<LeaderPage />} />
                 <Route path="/games" element={<GamesPage />} /> 
+                <Route path="/profile" element={<ProfilePage />} /> 
+                <Route path="/rooms-list/:gameId" element={<RoomsList />} /> 
+                <Route path="/match-history/:username" element={<MatchHistoryPage />} /> 
             </Routes>
             <Footer/>
         </Router>
-        
-
     );
 }
 

@@ -8,7 +8,7 @@ export default function HomePage() {
     }, []);
 
     return (
-        <div className="page">
+        <div className="page-home">
             <div className="ag-format-container">
                 <div className="ag-courses_grid">
                     <div className="ag-courses_item large-item">

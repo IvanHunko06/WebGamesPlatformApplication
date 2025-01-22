@@ -1,7 +1,7 @@
 import { useParams, useSearchParams, useNavigate} from "react-router-dom";
 import { useSignalR } from "../../contexts/SignalRContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { useEffect, useState,  useCallback} from "react";
+import { useEffect, useState, useCallback} from "react";
 const JoinRoomPage = ()=>{
     const {roomId} = useParams();
     const [searchParams] = useSearchParams();
@@ -15,7 +15,6 @@ const JoinRoomPage = ()=>{
         console.log("Join room method executed");
         console.log(String(roomId), typeof roomId);
         console.log(String(accessToken), typeof accessToken);
-
         
         let response = await invokeMethod("JoinRoom", roomId, accessToken ?? "");
         SetIsRequestRecived(true);
@@ -24,7 +23,7 @@ const JoinRoomPage = ()=>{
         if (response) {
             SetIsSuccessResponse(true);
             if (response.isSuccess === true) {
-                navigate("/room/" + roomId, { state: { connectionLink: window.location.href, reJoinLocalPath: window.location.pathname } });
+                navigate("/room/" + roomId); 
             } else {
                 navigate("/home");
             }
