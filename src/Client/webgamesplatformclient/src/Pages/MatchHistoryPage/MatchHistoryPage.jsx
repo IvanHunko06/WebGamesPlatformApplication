@@ -29,6 +29,7 @@ const MatchHistoryPage = () => {
         );
         if (Array.isArray(response.data)) {
           setMatches(response.data);
+          console.log(response.data);
         } else {
           console.error("Unexpected response format:", response.data);
         }
@@ -99,12 +100,12 @@ const MatchHistoryPage = () => {
           <tbody>
             {matches.length > 0 ? (
               matches.map((match) => (
-                <tr key={match.recordId}>
+                <tr key={match.timeBegin}>
                   <td>{games[match.gameId] || match.gameId}</td>
                   <td>{new Date(match.timeBegin).toLocaleString()}</td>
                   <td>{new Date(match.timeEnd).toLocaleString()}</td>
                   <td>{formatReason(match.finishReason)}</td>
-                  <td>{formatPoints(getUserScore(match.userScoreDelta))}</td>
+                  <td>{formatPoints(match.gainedScore)}</td>
                 </tr>
               ))
             ) : (
