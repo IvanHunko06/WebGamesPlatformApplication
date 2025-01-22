@@ -10,9 +10,9 @@ export default function Footer() {
         <a href="https://www.facebook.com" className="social-icon" target="_blank" rel="noopener noreferrer">
             <FontAwesomeIcon icon={faFacebookF} />
           </a>
-          <a href="https://www.twitter.com" className="social-icon" target="_blank" rel="noopener noreferrer">
+          {/* <a href="https://www.twitter.com" className="social-icon" target="_blank" rel="noopener noreferrer">
             <FontAwesomeIcon icon={faTwitter} />
-          </a>
+          </a> */}
           <a href="https://www.instagram.com" className="social-icon" target="_blank" rel="noopener noreferrer">
             <FontAwesomeIcon icon={faInstagram} />
           </a></div>

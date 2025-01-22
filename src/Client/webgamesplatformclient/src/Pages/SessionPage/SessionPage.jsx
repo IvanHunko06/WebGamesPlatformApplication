@@ -6,7 +6,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { GameProvider } from "../../contexts/GameContext";
 const SessionPage = ()=>{
     const {sessionId} = useParams();
-    const {connect, isConnected, invokeMethod} = useSignalR();
+    const {connect, isConnected, invokeMethod, onMethod, disconnect} = useSignalR();
+    const [needReconnect, setNeedReconnect] = useState(true);
     const [gameId, setGameId] = useState("inProgress");
     const {getToken} = useAuth();
     const getSessionInfo = useCallback(async () => {
@@ -28,7 +29,7 @@ const SessionPage = ()=>{
         }
     }, [isConnected, connect, getToken]);
     useEffect(() => {
-        if (isConnected) {
+        if (isConnected && needReconnect) {
             console.log("Connected, calling getSessionInfo...");
             getSessionInfo();
         }
@@ -41,6 +42,19 @@ const SessionPage = ()=>{
         else
             return <h1>unknown gameId</h1>;
     }, [gameId])
+    const sessionEnded = useCallback((reason, payload)=>{
+        console.log("Game ended.", reason, payload);
+    }, []);
+    const closeConnection = useCallback((reason)=>{
+        console.log("Closing connection with reason", reason);
+        disconnect();
+        setNeedReconnect(false);
+    }, [])
+    useEffect(()=>{
+        onMethod("SessionEnded", (reason, payload)=>sessionEnded(reason, payload));
+        onMethod("CloseConnection", (reason)=>closeConnection(reason));
+    }, [onMethod])
+    
     return(
         <>
         <GameProvider sessionId={sessionId}>

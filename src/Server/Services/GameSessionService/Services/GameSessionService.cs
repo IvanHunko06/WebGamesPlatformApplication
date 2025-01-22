@@ -284,10 +284,11 @@ public class GameSessionService : IGameSessionService
         gameSession.PlayerScores[disconnectedPlayer] = (gameSession.Players.Count - 1) * 2 * -1;
         foreach (var player in gameSession.Players)
         {
-            if(player == disconnectedPlayer) continue;
-            gameSession.PlayerScores[player] = 2;
+            if(player != disconnectedPlayer)
+                gameSession.PlayerScores[player] = 2;
             _ = Task.Run(async () =>
             {
+                logger.LogInformation($"Adding {gameSession.PlayerScores[player]} to player {player}");
                 string? errorMessage = await ratingService.AddLastSeasonUserScore(player, gameSession.PlayerScores[player]);
                 if (!string.IsNullOrEmpty(errorMessage))
                     logger.LogWarning($"an error occurred while updating the user rating. Error message: {errorMessage}");

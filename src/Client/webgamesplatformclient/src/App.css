@@ -1,7 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
 #root {
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: rgb(148, 255, 255);
+
+}
+
+.page {
+  flex: 1; 
+}
+
+.footer {
+  width: 100%;
+  background-color: #0073e6;
+  color: #fff;
+  padding: 1rem ;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+* {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#root{
   background-color: #f9f9f9;
   color: #333;
   flex-direction: column;
@@ -9,25 +37,76 @@
   min-height: 100vh;
 }
 
-
-
-#root {
+.loading {
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  height: 100vh; 
+  font-size: 24px; 
+  color: #0073e6; 
 }
+
+header nav {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  top: 60px;
+  right: 20px;
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+header nav a {
+  padding: 10px;
+  color: #0073e6;
+  text-decoration: none;
+  border-bottom: 1px solid #ddd;
+}
+
+header nav a:last-child {
+  border-bottom: none;
+}
+
+header .burger {
+  font-size: 24px;
+  cursor: pointer;
+}
+
+header nav.active {
+  display: flex;
+} 
+
 .page {
   padding: 20px;
   width: 100%;
   max-width: 800px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 90%;
 }
-* {
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+
+@media only screen and (max-width: 639px) {
+  header {
+      flex-direction: column;
+      padding: 10px;
+  }
+  header .burger {
+      display: block;
+  }
+  header nav {
+      position: static;
+      width: 100%;
+  }
+  .footer-content {
+      flex-direction: column;
+  }
+  .ag-courses-item_title {
+      font-size: 24px;
+  }
 }
+
+@media (max-width: 480px) {
+  header .logo {
+      font-size: 20px;
+  }
+}
+
