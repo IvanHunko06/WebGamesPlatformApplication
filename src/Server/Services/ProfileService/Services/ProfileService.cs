@@ -88,6 +88,8 @@ public class ProfileService : IProfileService
             {
                 var jsonObjectProfile = await keycloakAdmimClient.GetUser(username);
                 if (jsonObjectProfile is null) return null;
+                string usernameFromJson = jsonObjectProfile["username"]!.GetValue<string>();
+                if (usernameFromJson != username) return null;
                 await CreateDefaultProfile(username);
                 goto GetProfileFromDb;
             }
@@ -214,8 +216,8 @@ public class ProfileService : IProfileService
                 logger.LogWarning($"Profile {username} is null");
                 return false;
             }
-            if (requestDto.DayOfBirthday is not null)
-                profileEntity.DOB = requestDto.DayOfBirthday;
+            if (requestDto.DateOfBirthday is not null)
+                profileEntity.DOB = requestDto.DateOfBirthday;
 
             if (!string.IsNullOrEmpty(requestDto.PublicName?.Trim()))
                 profileEntity.PublicName = requestDto.PublicName.Trim();
