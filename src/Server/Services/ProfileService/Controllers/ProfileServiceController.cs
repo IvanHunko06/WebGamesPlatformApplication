@@ -50,7 +50,7 @@ public class ProfileServiceController : ControllerBase
         return Ok(new LimitedProfileClientModel()
         {
             Username = profile.Username,
-            IsPrivate = profile.IsPrivateProfile,
+            IsPrivateProfile = profile.IsPrivateProfile,
             PublicName = profile.PublicName,
             BigImageUrl = profile.BigImageUrl,
             SmallImageUrl = profile.SmallImageUrl,
@@ -89,7 +89,7 @@ public class ProfileServiceController : ControllerBase
             responseProfiles.Add(new LimitedProfileClientModel()
             {
                 Username = profile.Username,
-                IsPrivate = profile.IsPrivateProfile,
+                IsPrivateProfile = profile.IsPrivateProfile,
                 PublicName = profile.PublicName,
                 BigImageUrl = profile.BigImageUrl,
                 SmallImageUrl = profile.SmallImageUrl,
