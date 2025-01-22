@@ -42,8 +42,17 @@ public class MatchHistoryController : ControllerBase
             matchesForUser = await matchHistoryService.GetAllMatchesForUser(targetUserId);
             if (matchesForUser is null)
                 return NotFound();
-
-            return Ok(matchesForUser);
+            var fullMatchInfo = matchesForUser.Select(x => new FullMatchInfoModel()
+            {
+                FinishReason = x.FinishReason,
+                TimeBegin = x.TimeBegin,
+                TimeEnd = x.TimeEnd,
+                GameId = x.GameId,
+                RecordId = x.RecordId,
+                UserScoreDelta = x.UserScoreDelta,
+                GainedScore = x.UserScoreDelta.Where(r => r.Key == targetUserId).Select(r => r.Value).First()
+            });
+            return Ok(fullMatchInfo);
         }
         string? userIdClaim = userContext.GetUserId(HttpContext);
         if (string.IsNullOrEmpty(userIdClaim))
