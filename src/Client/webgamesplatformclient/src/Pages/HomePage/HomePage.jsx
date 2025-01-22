@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import './HomePage.css'
+import { useJwt } from '../../contexts/JwtTokenContext';
 export default function HomePage() {
 
+    const { getUsername } = useJwt();
     useEffect(() => {
         document.title = "Home";
     }, []);
@@ -18,7 +20,7 @@ export default function HomePage() {
                         </Link>
                     </div>
                     <div className="ag-courses_item">
-                        <Link to="/profile" className="ag-courses-item_link">
+                        <Link to={`/profile/${getUsername()}`} className="ag-courses-item_link">
                             <div className="ag-courses-item_bg"></div>
                             <div className="ag-courses-item_title">Your profile</div>
                         </Link>

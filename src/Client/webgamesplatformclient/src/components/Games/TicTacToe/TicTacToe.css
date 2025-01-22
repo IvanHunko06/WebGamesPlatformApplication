@@ -78,3 +78,65 @@
     color: #555;
 }
 
+@media (max-width: 480px) {
+    .game-container h1 {
+        font-size: 1.5rem;
+    }
+
+    .board {
+        grid-template-columns: repeat(3, 80px);
+        grid-template-rows: repeat(3, 80px);
+        gap: 5px;
+        padding: 5px;
+    }
+
+    .cell {
+        width: 80px;
+        height: 80px;
+        font-size: 24px;
+    }
+
+    .player-status {
+        font-size: 1.2rem;
+    }
+
+    .player-info {
+        font-size: 1rem;
+    }
+
+    .player-info p {
+        margin: 3px 0;
+    }
+}
+
+/* Адаптивность для экранов до 320px */
+@media (max-width: 320px) {
+    .board {
+        grid-template-columns: repeat(3, 60px);
+        grid-template-rows: repeat(3, 60px);
+        gap: 3px;
+        padding: 3px;
+    }
+
+    .cell {
+        width: 60px;
+        height: 60px;
+        font-size: 18px;
+    }
+
+    .game-container h1 {
+        font-size: 1rem;
+    }
+
+    .player-status {
+        font-size: 1rem;
+    }
+
+    .player-info {
+        font-size: 0.9rem;
+    }
+
+    .player-info p {
+        margin: 2px 0;
+    }
+}

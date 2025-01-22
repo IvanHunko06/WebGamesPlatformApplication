@@ -96,6 +96,7 @@ main {
   }
 
   .match-history-btn {
+    margin: 8px 0;
     padding: 12px 12px;
     background-color: #09b300;
     color: white;
@@ -178,4 +179,20 @@ main {
   font-weight: bold;
   color: #0056b3;
   transition: color 0.3s;
+}
+
+@media (max-width: 660px) {
+
+  .match-history-btn {
+    padding: 6px 6px;
+    background-color: #09b300;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    text-decoration: none;
+  }
 }

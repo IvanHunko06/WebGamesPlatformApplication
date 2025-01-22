@@ -36,7 +36,7 @@ function MainApp(){
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/leaderboard" element={<LeaderPage />} />
                 <Route path="/games" element={<GamesPage />} /> 
-                <Route path="/profile" element={<ProfilePage />} /> 
+                <Route path="/profile/:username" element={<ProfilePage />} /> 
                 <Route path="/rooms-list/:gameId" element={<RoomsList />} /> 
                 <Route path="/match-history/:username" element={<MatchHistoryPage />} /> 
             </Routes>
