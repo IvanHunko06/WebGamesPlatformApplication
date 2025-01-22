@@ -41,7 +41,7 @@ public class ProfileServiceController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return BadRequest(ErrorMessages.PreferedUsernameClaimNotFound);
 
-        if (userId == profile.Username)
+        if (userId.ToLower() == profile.Username.ToLower())
             return Ok(profile);
 
         if (!profile.IsPrivateProfile)
@@ -50,7 +50,7 @@ public class ProfileServiceController : ControllerBase
         return Ok(new LimitedProfileClientModel()
         {
             Username = profile.Username,
-            IsPrivate = profile.IsPrivateProfile,
+            IsPrivateProfile = profile.IsPrivateProfile,
             PublicName = profile.PublicName,
             BigImageUrl = profile.BigImageUrl,
             SmallImageUrl = profile.SmallImageUrl,
@@ -76,7 +76,7 @@ public class ProfileServiceController : ControllerBase
         List<object> responseProfiles = new List<object>();
         foreach (var profile in profiles)
         {
-            if (profile.Username == userId)
+            if (profile.Username.ToLower() == userId.ToLower())
             {
                 responseProfiles.Add(profile);
                 continue;
@@ -89,7 +89,7 @@ public class ProfileServiceController : ControllerBase
             responseProfiles.Add(new LimitedProfileClientModel()
             {
                 Username = profile.Username,
-                IsPrivate = profile.IsPrivateProfile,
+                IsPrivateProfile = profile.IsPrivateProfile,
                 PublicName = profile.PublicName,
                 BigImageUrl = profile.BigImageUrl,
                 SmallImageUrl = profile.SmallImageUrl,
@@ -131,7 +131,7 @@ public class ProfileServiceController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return BadRequest(ErrorMessages.PreferedUsernameClaimNotFound);
 
-        if (!User.IsInRole(authSettings.AdminRoleClaim) && profile.Username != userId)
+        if (!User.IsInRole(authSettings.AdminRoleClaim) && profile.Username.ToLower() != userId.ToLower())
             return Forbid();
 
         await profileService.UpdateProfilePrivacy(username, request.IsPrivateProfile);
@@ -151,7 +151,7 @@ public class ProfileServiceController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return BadRequest(ErrorMessages.PreferedUsernameClaimNotFound);
 
-        if (!User.IsInRole(authSettings.AdminRoleClaim) && profile.Username != userId)
+        if (!User.IsInRole(authSettings.AdminRoleClaim) && profile.Username.ToLower() != userId.ToLower())
             return Forbid();
 
         string? errorMessage = await profileService.UpdateProfileIcon(username, request.IconId);
@@ -173,7 +173,7 @@ public class ProfileServiceController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return BadRequest(ErrorMessages.PreferedUsernameClaimNotFound);
 
-        if (!User.IsInRole(authSettings.AdminRoleClaim) && profile.Username != userId)
+        if (!User.IsInRole(authSettings.AdminRoleClaim) && profile.Username.ToLower() != userId.ToLower())
             return Forbid();
 
         var isSuccess = await profileService.UpdateProfile(username, request);

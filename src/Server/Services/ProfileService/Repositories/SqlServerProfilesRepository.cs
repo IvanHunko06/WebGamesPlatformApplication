@@ -100,7 +100,7 @@ public class SqlServerProfilesRepository : IProfilesRepository
             .Profiles
             .Where(x => x.Username == profile.Username)
             .ExecuteUpdateAsync(u => u
-            .SetProperty(p => p.PublicName, profile.Username)
+            .SetProperty(p => p.PublicName, profile.PublicName)
             .SetProperty(p => p.IsPrivateProfile, profile.IsPrivateProfile)
             .SetProperty(p => p.DOB, profile.DOB)
             .SetProperty(p => p.ImageId, profile.ImageId)

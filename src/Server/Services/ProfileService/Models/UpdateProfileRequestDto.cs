@@ -2,6 +2,6 @@
 
 public class UpdateProfileRequestDto
 {
-    public DateOnly? DayOfBirthday { get; set; }
+    public DateOnly? DateOfBirthday { get; set; }
     public string? PublicName {  get; set; }
 }

@@ -55,6 +55,7 @@ const LeaderPage = () => {
           }
         );
         const data = response.data;
+        console.log(response.data);
         const formattedData = data.map((item) => ({
           name: item.userId,
           points: `${item.score} pts`,

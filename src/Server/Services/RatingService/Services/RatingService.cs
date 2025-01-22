@@ -9,7 +9,7 @@ public class RatingService : IRatingService
 {
     private readonly IRatingRepository ratingRepository;
     private readonly ILogger<RatingService> logger;
-    private static readonly SemaphoreSlim updateScoreSemaphore = new SemaphoreSlim(1, 1);
+    private static readonly SemaphoreSlim ratingSemaphore = new SemaphoreSlim(1, 1);
 
     public RatingService(IRatingRepository ratingRepository, ILogger<RatingService> logger)
     {
@@ -20,13 +20,21 @@ public class RatingService : IRatingService
     {
         try
         {
-            SeasonEntity seasonEntity = new SeasonEntity()
+            await ratingSemaphore.WaitAsync();
+            try
             {
-                DateStart = beginDate,
-                DateEnd = endDate,
-            };
-            await ratingRepository.AddSeason(seasonEntity);
-            return null;
+                SeasonEntity seasonEntity = new SeasonEntity()
+                {
+                    DateStart = beginDate,
+                    DateEnd = endDate,
+                };
+                await ratingRepository.AddSeason(seasonEntity);
+                return null;
+            }
+            finally
+            {
+                ratingSemaphore.Release();
+            }
         }
         catch (Exception ex)
         {
@@ -38,20 +46,27 @@ public class RatingService : IRatingService
     {
         try
         {
-
-            DateTime now = DateTime.Now;
-            logger.LogInformation($"Getting the current season for the date {now.ToShortDateString()}");
-            DateOnly currentDate = DateOnly.FromDateTime(now);
-            var seasonEntity = await ratingRepository.GetSeasonForDate(currentDate);
-            if (seasonEntity is null)
-                return null;
-
-            return new SeasonModel()
+            await ratingSemaphore.WaitAsync();
+            try
             {
-                BeginDate = seasonEntity.DateStart,
-                EndDate = seasonEntity.DateEnd,
-                SeasonId = seasonEntity.Id
-            };
+                DateTime now = DateTime.Now;
+                logger.LogInformation($"Getting the current season for the date {now.ToShortDateString()}");
+                DateOnly currentDate = DateOnly.FromDateTime(now);
+                var seasonEntity = await ratingRepository.GetSeasonForDate(currentDate);
+                if (seasonEntity is null)
+                    return null;
+
+                return new SeasonModel()
+                {
+                    BeginDate = seasonEntity.DateStart,
+                    EndDate = seasonEntity.DateEnd,
+                    SeasonId = seasonEntity.Id
+                };
+            }
+            finally
+            {
+                ratingSemaphore.Release();
+            }
         }
         catch (Exception ex)
         {
@@ -64,7 +79,7 @@ public class RatingService : IRatingService
     {
         try
         {
-            await updateScoreSemaphore.WaitAsync();
+            await ratingSemaphore.WaitAsync();
             try
             {
                 logger.LogInformation($"Adding or updating user score. UserId: {userId} SeasonId: {seasonId} Score: {score}");
@@ -95,7 +110,7 @@ public class RatingService : IRatingService
             }
             finally
             {
-                updateScoreSemaphore.Release();
+                ratingSemaphore.Release();
             }
         }
         catch (Exception ex)
@@ -108,11 +123,19 @@ public class RatingService : IRatingService
     {
         try
         {
-            var userScore = await ratingRepository.GetUserScore(userId, seasonId);
-            if (userScore is null)
-                return null;
+            await ratingSemaphore.WaitAsync();
+            try
+            {
+                var userScore = await ratingRepository.GetUserScore(userId, seasonId);
+                if (userScore is null)
+                    return null;
 
-            return userScore.Score;
+                return userScore.Score;
+            }
+            finally
+            {
+                ratingSemaphore.Release();
+            }
         }
         catch (Exception ex)
         {
@@ -124,16 +147,24 @@ public class RatingService : IRatingService
     {
         try
         {
-            var rawRatingList = await ratingRepository.GetUserScoresList(seasonId, SelectedRecords);
-            var ratingList = rawRatingList.Select(x =>
+            await ratingSemaphore.WaitAsync();
+            try
             {
-                return new UserScoreModel()
+                var rawRatingList = await ratingRepository.GetUserScoresList(seasonId, SelectedRecords);
+                var ratingList = rawRatingList.Select(x =>
                 {
-                    Score = x.Score,
-                    UserId = x.UserId,
-                };
-            }).ToList();
-            return ratingList;
+                    return new UserScoreModel()
+                    {
+                        Score = x.Score,
+                        UserId = x.UserId,
+                    };
+                }).ToList();
+                return ratingList;
+            }
+            finally
+            {
+                ratingSemaphore.Release();
+            }
         }
         catch (Exception ex)
         {
@@ -145,14 +176,22 @@ public class RatingService : IRatingService
     {
         try
         {
-            var rawSeasons = await ratingRepository.GetAllSeasons();
-            var seasons = rawSeasons.Select(x => new SeasonModel()
+            await ratingSemaphore.WaitAsync();
+            try
             {
-                BeginDate = x.DateStart,
-                EndDate = x.DateEnd,
-                SeasonId = x.Id,
-            }).ToList();
-            return seasons;
+                var rawSeasons = await ratingRepository.GetAllSeasons();
+                var seasons = rawSeasons.Select(x => new SeasonModel()
+                {
+                    BeginDate = x.DateStart,
+                    EndDate = x.DateEnd,
+                    SeasonId = x.Id,
+                }).ToList();
+                return seasons;
+            }
+            finally
+            {
+                ratingSemaphore.Release();
+            }
         }
         catch (Exception ex)
         {
