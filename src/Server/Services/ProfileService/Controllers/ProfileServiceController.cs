@@ -137,7 +137,6 @@ public class ProfileServiceController : ControllerBase
         await profileService.UpdateProfilePrivacy(username, request.IsPrivateProfile);
         return NoContent();
 
-
     }
 
 
