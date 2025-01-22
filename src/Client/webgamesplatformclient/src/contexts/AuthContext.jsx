@@ -58,7 +58,7 @@ const AuthContext = createContext();
     useEffect(()=>{
       if(!kc.current){
         login({
-          url: 'https://25.31.1.44:7005/auth/',
+          url: 'https://localhost:7005/auth/',
           realm: 'WebGamesPlatform',
           clientId: 'public-client',
         });
