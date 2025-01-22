@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Numerics;
+using System.Text.Json;
 using GameSessionService.Interfaces;
 using SharedApiUtils.Abstractons;
 using SharedApiUtils.Abstractons.Interfaces.Clients;
@@ -262,7 +263,7 @@ public class GameSessionService : IGameSessionService
             logger.LogInformation($"Notifying session players");
             foreach (var score in playerScores)
             {
-                logger.LogDebug($"Notifying user {score.Key} with score {score.Value}");
+                logger.LogInformation($"Adding {score.Value} to player {score.Key}");
                 gameSession.PlayerScores[score.Key] = score.Value;
                 await gameSessionWsNotifyer.NotifySessionEnded_User(gameSession.SessionId, score.Key, EndSessionReason.NormalFinish, score.Value.ToString());
                 _ = Task.Run(async () =>
