@@ -8,8 +8,11 @@ import ProfileView from "./ProfileView";
 
 const Profile = () => {
   const [profileData, setProfileData] = useState(null);
+  const [editableName, setEditableName] = useState("");
+  const [editableDob, setEditableDob] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [icons, setIcons] = useState([]);
   const { username } = useParams();
   const { getToken } = useAuth();
   const { getUsername } = useJwt();
@@ -31,6 +34,8 @@ const Profile = () => {
           }
         );
         setProfileData(response.data);
+        setEditableName(response.data.publicName || "");
+        setEditableDob(response.data.dob || "");
         setLoading(false);
       } catch (err) {
         console.error("Error fetching profile data:", err);
@@ -42,12 +47,32 @@ const Profile = () => {
     fetchProfile();
   }, [username, getToken]);
 
-  const handleSaveName = () => {
-    alert(`Name saved: ${profileData.publicName}`);
-  };
+  const handleSaveProfileData = async () => {
+    try {
+      const token = await getToken();
+      const payload = {
+        dateOfBirthday: editableDob,
+        publicName: editableName,
+      };
 
-  const handleSaveDob = () => {
-    alert(`Date of Birth saved: ${profileData.dob}`);
+      await axios.put(
+        `https://localhost:7005/api/services/profile-service/rest/profile/${username}/update`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setProfileData((prev) => ({
+        ...prev,
+        publicName: editableName,
+        dob: editableDob,
+      }));
+    } catch (err) {
+      console.error("Error updating profile data:", err);
+    }
   };
 
   const handleToggle = async () => {
@@ -71,7 +96,75 @@ const Profile = () => {
       }));
     } catch (err) {
       console.error("Error updating profile privacy:", err);
-      alert("Failed to update profile privacy. Please try again.");
+    }
+  };
+
+  useEffect(() => {
+    const fetchScore = async () => {
+      try {
+        const token = await getToken();
+        const response = await axios.get(
+          `https://localhost:7005/api/services/rating-service/rest/GetScore/${username}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setProfileData((prev) => ({
+          ...prev,
+          score: response.data, 
+        }));
+      } catch (err) {
+        console.error("Error fetching score data:", err);
+      }
+    };
+  
+    if (username) fetchScore();
+  }, [username, getToken]);
+
+  useEffect(() => {
+    const fetchIcons = async () => {
+      try {
+        const token = await getToken();
+        const response = await axios.get(
+          "https://localhost:7005/api/services/profile-service/rest/GetProfileIcons",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        console.log(response.data)
+        setIcons(response.data);
+      } catch (err) {
+        console.error("Error fetching profile icons:", err);
+      }
+    };
+
+    fetchIcons();
+  }, [getToken]);
+
+  const handleSetUserIcon = async (iconId) => {
+    console.log('iconId', iconId)
+    try {
+      const token = await getToken();
+      await axios.patch(
+        `https://localhost:7005/api/services/profile-service/rest/profile/${username}/icon`,
+        { IconId: iconId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+  
+      setProfileData((prev) => ({
+        ...prev,
+        smallImageUrl: icons.find((icon) => icon.iconId === iconId)?.smallImageUrl || prev.smallImageUrl,
+      }));
+    } catch (err) {
+      console.error("Error updating profile icon:", err);
     }
   };
 
@@ -83,10 +176,16 @@ const Profile = () => {
   return (
     <ProfileView
       profileData={profileData}
+      editableName={editableName}
+      setEditableName={setEditableName}
+      editableDob={editableDob}
+      setEditableDob={setEditableDob}
       isOwnProfile={isOwnProfile}
-      onSaveName={handleSaveName}
-      onSaveDob={handleSaveDob}
+      onSaveName={handleSaveProfileData}
+      onSaveDob={handleSaveProfileData}
       onTogglePrivacy={handleToggle}
+      icons={icons}
+      onIconSelect={handleSetUserIcon}
     />
   );
 };

@@ -1,8 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import "./ProfilePage.css";
 import { NavLink } from "react-router-dom";
 
-const ProfileView = ({ profileData, isOwnProfile, onSaveName, onSaveDob, onTogglePrivacy }) => {
+const ProfileView = ({ 
+  profileData, 
+  setEditableName, 
+  editableName, 
+  setEditableDob, 
+  editableDob, 
+  isOwnProfile, 
+  onSaveName, 
+  onSaveDob, 
+  onTogglePrivacy,
+  icons,
+  onIconSelect
+}) => {
+  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState(profileData.smallImageUrl || "https://localhost:7005/resources/images/no-image-profile.png");
+
+  const handleIconSelect = (iconId) => {
+    console.log('first')
+    onIconSelect(iconId);
+    setSelectedIcon(icons.find(icon => icon.iconId === iconId)?.smallImageUrl || selectedIcon);
+    setDropdownOpen(false);
+  };
+
   return (
     <>
       <main>
@@ -11,11 +33,27 @@ const ProfileView = ({ profileData, isOwnProfile, onSaveName, onSaveDob, onToggl
 
           <div className="profile-details">
             <div className="photo">
-              <img
-                src={profileData.smallImageUrl || "src/assets/profiel_ico.png"}
-                alt="Profile Picture"
-              />
-              {isOwnProfile && <button className="change-photo">Change</button>}
+              <img className="icon" src={selectedIcon} alt="None" />
+              {isOwnProfile && (
+                <div className="photo-dropdown">
+                  <button className="change-photo" onClick={() => setDropdownOpen(!isDropdownOpen)}>
+                    Change
+                  </button>
+                  {isDropdownOpen && (
+                    <div className="dropdown-menu">
+                      {icons.map((icon) => (
+                        <img 
+                          key={icon.iconId} 
+                          src={icon.smallImageUrl} 
+                          alt="Icon" 
+                          className="dropdown-icon"
+                          onClick={() => handleIconSelect(icon.iconId)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="profile-info">
@@ -25,10 +63,8 @@ const ProfileView = ({ profileData, isOwnProfile, onSaveName, onSaveDob, onToggl
                   type="text"
                   id="username"
                   placeholder="Enter your name"
-                  value={profileData.publicName || ""}
-                  onChange={(e) =>
-                    profileData.setPublicName(e.target.value)
-                  }
+                  value={editableName}
+                  onChange={(e) => setEditableName(e.target.value)}
                   disabled={!isOwnProfile}
                 />
                 {isOwnProfile && (
@@ -38,7 +74,7 @@ const ProfileView = ({ profileData, isOwnProfile, onSaveName, onSaveDob, onToggl
                 )}
               </div>
 
-              {!isOwnProfile && !profileData.isPrivate && (
+              {!isOwnProfile && !profileData.isPrivateProfile && (
                 <>
                   <div className="date">
                     <label htmlFor="dob">Date of Birth:</label>
@@ -49,7 +85,7 @@ const ProfileView = ({ profileData, isOwnProfile, onSaveName, onSaveDob, onToggl
                       disabled
                     />
                   </div>
-                  <p className="total">Total: 1000</p>
+                  <p className="total">Total: {profileData.score ?? "Loading..."}</p>
                 </>
               )}
 
@@ -60,21 +96,17 @@ const ProfileView = ({ profileData, isOwnProfile, onSaveName, onSaveDob, onToggl
                     <input
                       type="date"
                       id="dob"
-                      value={profileData.dob || ""}
-                      onChange={(e) =>
-                        profileData.setDob(e.target.value)
-                      }
+                      value={editableDob}
+                      onChange={(e) => setEditableDob(e.target.value)}
                     />
                     <button className="save-btn" onClick={onSaveDob}>
                       Save
                     </button>
                   </div>
-                  <p className="total">Total: 1000</p>
+                  <p className="total">Total: {profileData.score ?? "Loading..."}</p>
                   <div className="toggle-container">
                     <div
-                      className={`toggle ${
-                        profileData.isPrivateProfile ? "private" : "public"
-                      }`}
+                      className={`toggle ${profileData.isPrivateProfile ? "private" : "public"}`}
                       onClick={onTogglePrivacy}
                     >
                       <div className="toggle-circle"></div>
@@ -89,8 +121,8 @@ const ProfileView = ({ profileData, isOwnProfile, onSaveName, onSaveDob, onToggl
           </div>
         </div>
       </main>
-      {/* user cannot  */}
-      {isOwnProfile && (  
+
+      {isOwnProfile && (
         <NavLink className="match-history-btn" to={`/match-history/${profileData.username}`}>
           Match History
         </NavLink>

@@ -57,16 +57,14 @@ const RoomPage = () => {
         setNotifications((prev) => {
             const updatedNotifications = [...prev, newNotification];
     
-            // Задержка перед отображением уведомления
             setTimeout(() => {
                 setNotifications((prevState) =>
                     prevState.map((notification) =>
                         notification.id === id ? { ...notification, isVisible: true } : notification
                     )
                 );
-            }, 50); // Задержка перед запуском анимации
+            }, 50); 
     
-            // Удаление уведомления через 5 секунд
             setTimeout(() => {
                 setNotifications((prevState) =>
                     prevState.filter((notification) => notification.id !== id)
@@ -76,7 +74,6 @@ const RoomPage = () => {
             return updatedNotifications;
         });
     };
-    
     
     const addRoomMember = useCallback((member) => {
         console.log("AddRoomMember", member);
@@ -141,9 +138,6 @@ const RoomPage = () => {
         }
     };
     
-    
-    
-
     return (
         <>
             {!isConnected ? (
@@ -162,7 +156,12 @@ const RoomPage = () => {
                                 <div className="members-container">
                                     {RoomMembers.map((member, index) => (
                                         <div className="member-tile" key={index}>
-                                            <div className="member-image"></div>
+                                            <div className="member-image">
+                                                <img
+                                                src={ ""} 
+                                                alt={member.name}
+                                                />
+                                            </div>
                                             <span className="member-name">{member}</span>
                                         </div>
                                     ))}

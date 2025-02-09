@@ -109,7 +109,6 @@
     }
 }
 
-/* Адаптивность для экранов до 320px */
 @media (max-width: 320px) {
     .board {
         grid-template-columns: repeat(3, 60px);

@@ -27,7 +27,7 @@ const LeaderPage = () => {
           }
         );
         const data = response.data;
-        setSeasons(data);
+        setSeasons(data.slice().reverse());
         if (data.length > 0) {
           setActiveSeason(data[0].seasonId);
         }

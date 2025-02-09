@@ -74,6 +74,10 @@
 
 }
 
+.season-button{
+  margin: 0 4px;
+}
+
 .season-buttons.flex-container {
   display: flex;
   gap: 10px;
@@ -90,6 +94,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  
 }
 
 .season-buttons.grid-container {
