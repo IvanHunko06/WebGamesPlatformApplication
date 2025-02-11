@@ -3,6 +3,7 @@ import { useSignalR } from "../../contexts/SignalRContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useCallback, useState } from "react";
 import { jwtDecode } from "jwt-decode";
+import axios from "axios";
 import "./RoomPage.css";
 
 const RoomPage = () => {
@@ -16,6 +17,7 @@ const RoomPage = () => {
     const [ShowStartButton, SetShowStartButton] = useState(false);
     const [RoomCreator, SetRoomCreator] = useState("");
     const [notifications, setNotifications] = useState([]);
+    const [MemberProfiles, SetMemberProfiles] = useState({});
     const navigate = useNavigate();
 
     const getRoom = useCallback(async () => {
@@ -39,6 +41,37 @@ const RoomPage = () => {
             SetIsSuccessResponse(false);
         }
     }, [invokeMethod, roomId, navigate]);
+
+    const fetchProfiles = useCallback(async (members) => {
+        const token = await getToken();
+        const profiles = {};
+
+        await Promise.all(members.map(async (member) => {
+            try {
+                const response = await axios.get(
+                    `https://localhost:7005/api/services/profile-service/rest/GetProfile/${member}`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+                profiles[member] = {
+                    name: response.data.publicName || member,
+                    image: response.data.smallImageUrl || ""
+                };
+            } catch (error) {
+                console.error(`Error fetching profile for ${member}:`, error);
+                profiles[member] = { name: member, image: "" };
+            }
+        }));
+
+        SetMemberProfiles(profiles);
+    }, [getToken]);
+
+    useEffect(() => {
+        if (RoomMembers.length > 0) {
+            fetchProfiles(RoomMembers);
+        }
+    }, [RoomMembers, fetchProfiles]);
 
     useEffect(() => {
         console.log("RoomPage mounted");
@@ -157,16 +190,13 @@ const RoomPage = () => {
                                     {RoomMembers.map((member, index) => (
                                         <div className="member-tile" key={index}>
                                             <div className="member-image">
-                                                <img
-                                                src={ ""} 
-                                                alt={member.name}
-                                                />
+                                                <img src={MemberProfiles[member]?.image || "default-avatar.png"} alt={MemberProfiles[member]?.name} />
                                             </div>
-                                            <span className="member-name">{member}</span>
+                                            <span className="member-name">{MemberProfiles[member]?.name || member}</span>
                                         </div>
                                     ))}
                                 </div>
-    
+        
                                 <div className="notification-container">
                                     {notifications.map((notification, index) => (
                                         <div

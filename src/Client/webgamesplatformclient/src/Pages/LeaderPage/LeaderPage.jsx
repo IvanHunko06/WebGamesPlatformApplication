@@ -10,6 +10,8 @@ const LeaderPage = () => {
   const [activeSeason, setActiveSeason] = useState(null);
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fadeOut, setFadeOut] = useState(null);
+
   useEffect(() => {
     document.title = "Leader Page";
   }, []);
@@ -40,40 +42,44 @@ const LeaderPage = () => {
   }, [getToken]);
 
   useEffect(() => {
-    const fetchRatings = async () => {
-      if (activeSeason === null) return;
+    if (activeSeason === null) return;
 
-      setLoading(true);
-      try {
-        const token = await getToken();
-        const response = await axios.get(
-          `https://localhost:7005/api/services/rating-service/rest/GetRatingList/${activeSeason}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const data = response.data;
-        console.log(response.data);
-        const formattedData = data.map((item) => ({
-          name: item.userId,
-          points: `${item.score} pts`,
-        }));
-        setLeaderboardData(formattedData);
-      } catch (error) {
-        console.error("Error fetching ratings:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setTimeout(() => {
+      const fetchRatings = async () => {
+        try {
+          const token = await getToken();
+          const response = await axios.get(
+            `https://localhost:7005/api/services/rating-service/rest/GetRatingList/${activeSeason}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          const data = response.data;
+          const formattedData = data.map((item) => ({
+            name: item.userId,
+            points: `${item.score} pts`,
+          }));
+          setTimeout(() => {
+            setLeaderboardData(formattedData);
+            setFadeOut(false);
+          }, 200);
+        } catch (error) {
+          console.error("Error fetching ratings:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    fetchRatings();
+      fetchRatings();
+    }, 200);
   }, [activeSeason, getToken]);
 
   const handleSeasonChange = (seasonId) => {
     if (seasonId === activeSeason) return;
-    setActiveSeason(seasonId);
+    setFadeOut(true);
+    setTimeout(() => setActiveSeason(seasonId), 200);
   };
 
   const activeSeasonDates = seasons.find(
@@ -82,7 +88,9 @@ const LeaderPage = () => {
 
   return (
     <div className="leaderboard-container">
-      <div className="season-buttons">
+      <div
+        className={`season-buttons ${seasons.length > 10 ? "grid-container" : "flex-container"}`}
+      >
         {seasons.map((season) => (
           <button
             key={season.seasonId}
@@ -98,15 +106,17 @@ const LeaderPage = () => {
       {loading ? (
         <div className="loading">Loading...</div>
       ) : (
-        <LeaderBoardTable
-          activeSeason={activeSeason}
-          leaderboardData={leaderboardData}
-          seasonDates={
-            activeSeasonDates
-              ? { beginDate: activeSeasonDates.beginDate, endDate: activeSeasonDates.endDate }
-              : { beginDate: "", endDate: "" }
-          }
-        />
+        <div className={`leaderboard-table-container ${fadeOut ? "fade-out" : "fade-in"}`}>
+          <LeaderBoardTable
+            activeSeason={activeSeason}
+            leaderboardData={leaderboardData}
+            seasonDates={
+              activeSeasonDates
+                ? { beginDate: activeSeasonDates.beginDate, endDate: activeSeasonDates.endDate }
+                : { beginDate: "", endDate: "" }
+            }
+          />
+        </div>
       )}
     </div>
   );
