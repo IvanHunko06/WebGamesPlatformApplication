@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Tic from '../../assets/Tic.jpg';
-import Chess from '../../assets/Chess.jpg';
-import Cube from '../../assets/Cube.jpg';
 import GameCard from './GameCard';
 import './GamesPage.css';
 import ModalJoin from './ModalJoin';
 import { useAuth } from "../../contexts/AuthContext";
+import { useNotification } from "../../contexts/NotificationContext";
 
 const GamesContainer = ({ games }) => {
   return (
@@ -23,6 +22,8 @@ const GamesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const { getToken } = useAuth(); 
+  const { addNotification } = useNotification();
+  const [count,setCount] = useState(0);
 
   useEffect(() => {
     document.title = 'Games';
@@ -73,6 +74,9 @@ const GamesPage = () => {
         <div className="loading">Loading games...</div>
       ) : (
         <>
+          <button onClick={() => { setCount(prev => prev + 1); addNotification(`Test${count + 1}`); }}>
+            Test
+          </button>
           <button className="code-button" onClick={handleOpenJoinModal}>
             Connect using code
           </button>
