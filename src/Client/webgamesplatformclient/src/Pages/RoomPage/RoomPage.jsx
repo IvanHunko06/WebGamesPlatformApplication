@@ -5,6 +5,7 @@ import { useEffect, useCallback, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 import "./RoomPage.css";
+import { useNotification } from "../../contexts/NotificationContext";
 
 const RoomPage = () => {
     const { roomId } = useParams();
@@ -18,6 +19,8 @@ const RoomPage = () => {
     const [RoomCreator, SetRoomCreator] = useState("");
     const [notifications, setNotifications] = useState([]);
     const [MemberProfiles, SetMemberProfiles] = useState({});
+    const { addNotification } = useNotification();
+    
     const navigate = useNavigate();
 
     const getRoom = useCallback(async () => {
@@ -83,35 +86,10 @@ const RoomPage = () => {
         }
     }, [isConnected, connect, getToken]);
     
-    const manageNotification = (message, type = "info") => {
-        const id = Date.now();
-        const newNotification = { id, message, type, isVisible: false };
-    
-        setNotifications((prev) => {
-            const updatedNotifications = [...prev, newNotification];
-    
-            setTimeout(() => {
-                setNotifications((prevState) =>
-                    prevState.map((notification) =>
-                        notification.id === id ? { ...notification, isVisible: true } : notification
-                    )
-                );
-            }, 50); 
-    
-            setTimeout(() => {
-                setNotifications((prevState) =>
-                    prevState.filter((notification) => notification.id !== id)
-                );
-            }, 5000);
-    
-            return updatedNotifications;
-        });
-    };
-    
     const addRoomMember = useCallback((member) => {
         console.log("AddRoomMember", member);
 
-        manageNotification(`Player ${member} joined the room`);
+        addNotification(`Player ${member} joined the room`);
 
         SetRoomMembers((prevRoomMembers) => {
             if (!prevRoomMembers.includes(member)) {
@@ -124,7 +102,7 @@ const RoomPage = () => {
     const removeRoomMember = useCallback((member) => {
         console.log("RemoveRoomMember", member);
 
-        manageNotification(`Player ${member} left the room`);
+        addNotification(`Player ${member} left the room`);
 
         SetRoomMembers((prevRoomMembers) =>
             prevRoomMembers.filter((m) => m !== member)
@@ -166,7 +144,7 @@ const RoomPage = () => {
             console.log("response", response);
     
             if (!response.isSuccess) {
-                manageNotification(`Error: ${response.errorMessage}`, "error");
+                addNotification(`Error: ${response.errorMessage}`, "error");
             }
         }
     };
@@ -190,24 +168,9 @@ const RoomPage = () => {
                                     {RoomMembers.map((member, index) => (
                                         <div className="member-tile" key={index}>
                                             <div className="member-image">
-                                                <img src={MemberProfiles[member]?.image || "default-avatar.png"} alt={MemberProfiles[member]?.name} />
+                                                <img src={MemberProfiles[member]?.image || "https://localhost:7005/resources/images/no-image-profile.png"} alt={MemberProfiles[member]?.name} />
                                             </div>
                                             <span className="member-name">{MemberProfiles[member]?.name || member}</span>
-                                        </div>
-                                    ))}
-                                </div>
-        
-                                <div className="notification-container">
-                                    {notifications.map((notification, index) => (
-                                        <div
-                                            key={notification.id}
-                                            className={`notification ${notification.type === "error" ? "notification-error" : ""}`}
-                                            style={{
-                                                animationDelay: `${index * 0.1}s, 4s`,
-                                                opacity: notification.isAnimating ? 1 : 0,
-                                            }}
-                                        >
-                                            {notification.message}
                                         </div>
                                     ))}
                                 </div>

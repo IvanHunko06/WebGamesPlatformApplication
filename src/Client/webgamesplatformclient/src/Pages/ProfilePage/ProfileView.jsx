@@ -85,7 +85,7 @@ const ProfileView = ({
                       disabled
                     />
                   </div>
-                  <p className="total">Total: {profileData.score ?? "Loading..."}</p>
+                  <p className="total">Total: {profileData.score ?? "0"}</p>
                 </>
               )}
 
@@ -103,7 +103,7 @@ const ProfileView = ({
                       Save
                     </button>
                   </div>
-                  <p className="total">Total: {profileData.score ?? "Loading..."}</p>
+                  <p className="total">Total: {profileData.score ?? "0"}</p>
                   <div className="toggle-container">
                     <div
                       className={`toggle ${profileData.isPrivateProfile ? "private" : "public"}`}

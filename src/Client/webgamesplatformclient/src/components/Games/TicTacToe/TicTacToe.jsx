@@ -3,6 +3,7 @@ import { useGame } from "../../../contexts/GameContext";
 import { jwtDecode } from "jwt-decode";
 import { useAuth } from "../../../contexts/AuthContext";
 import "./TicTacToe.css";
+import { useNotification } from "../../../contexts/NotificationContext";
 
 const TicTacToe = () => {
   const [board, setBoard] = useState(Array(9).fill(null));
@@ -12,6 +13,7 @@ const TicTacToe = () => {
   const [OPlayer, SetOPlayer] = useState(undefined);
   const { sendAction, syncGameState, setCallbackFunction, sessionId } = useGame();
   const { getToken } = useAuth();
+  const { addNotification } = useNotification();
 
   const handleClick = async (index) => {
     console.log("Click on", index);
@@ -20,6 +22,8 @@ const TicTacToe = () => {
     };
     let reply = await sendAction(sessionId, "PUT", JSON.stringify(payload));
     console.log(reply);
+    // if(payload!=null)
+    //   addNotification(reply.payload);
   };
 
   const reciveAction = useCallback((action) => {

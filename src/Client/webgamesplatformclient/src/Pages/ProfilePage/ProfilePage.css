@@ -92,7 +92,7 @@ main {
     border-radius: 8px;
     cursor: pointer;
     font-size: 18px;
-    margin: 0 8px;
+    margin: 3px 8px;
     font-weight: bold;
     transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   }
@@ -132,6 +132,7 @@ main {
     color: #444;
     font-weight: bold;
     transition: color 0.3s ease;
+    margin: 5px 0;
   }
   
   .profile-info .total:hover {
@@ -186,7 +187,7 @@ main {
 @media (max-width: 660px) {
 
   .match-history-btn {
-    padding: 6px 6px;
+    padding: 9px 9px;
     background-color: #09b300;
     color: white;
     border: none;

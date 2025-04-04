@@ -2,13 +2,17 @@ import { useParams, useSearchParams, useNavigate} from "react-router-dom";
 import { useSignalR } from "../../contexts/SignalRContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useState, useCallback} from "react";
-const JoinRoomPage = ()=>{
+import { useNotification } from "../../contexts/NotificationContext";
+
+const JoinRoomPage = () =>{
     const {roomId} = useParams();
     const [searchParams] = useSearchParams();
     const {connect, isConnected, invokeMethod} = useSignalR();
     const [IsRequestRecived, SetIsRequestRecived] = useState(false);
     const [IsSuccessResponse, SetIsSuccessResponse] = useState(false);
     const navigate = useNavigate();
+    const { addNotification } = useNotification();
+
     const {getToken} = useAuth();
     const accessToken = searchParams.get("accessToken");
     const joinRoom = useCallback(async () => {
@@ -25,6 +29,7 @@ const JoinRoomPage = ()=>{
             if (response.isSuccess === true) {
                 navigate("/room/" + roomId); 
             } else {
+                addNotification(`Error: ${response.errorMessage}`,"error")
                 navigate("/home");
             }
         } else {

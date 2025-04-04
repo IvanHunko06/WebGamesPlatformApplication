@@ -34,7 +34,7 @@ const LeaderPage = () => {
           setActiveSeason(data[0].seasonId);
         }
       } catch (error) {
-        console.error("Error fetching seasons:", error);
+        addNotification("Error fetching seasons", "error");
       }
     };
 
@@ -66,7 +66,7 @@ const LeaderPage = () => {
             setFadeOut(false);
           }, 200);
         } catch (error) {
-          console.error("Error fetching ratings:", error);
+          addNotification("Error fetching ratings", "error");
         } finally {
           setLoading(false);
         }

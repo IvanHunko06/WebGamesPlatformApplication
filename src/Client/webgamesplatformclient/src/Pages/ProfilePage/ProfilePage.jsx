@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useJwt } from "../../contexts/JwtTokenContext";
 import axios from "axios";
 import ProfileView from "./ProfileView";
+import { useNotification } from "../../contexts/NotificationContext";
 
 const Profile = () => {
   const [profileData, setProfileData] = useState(null);
@@ -16,6 +17,7 @@ const Profile = () => {
   const { username } = useParams();
   const { getToken } = useAuth();
   const { getUsername } = useJwt();
+  const { addNotification } = useNotification();
 
   useEffect(() => {
     document.title = "Profile";
@@ -38,7 +40,7 @@ const Profile = () => {
         setEditableDob(response.data.dob || "");
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching profile data:", err);
+        addNotification("Error fetching profile data","error");
         setError("Failed to fetch profile data.");
         setLoading(false);
       }
@@ -70,8 +72,10 @@ const Profile = () => {
         publicName: editableName,
         dob: editableDob,
       }));
+      addNotification("Profile updated");
+
     } catch (err) {
-      console.error("Error updating profile data:", err);
+      addNotification("Error updating profile data", "error");
     }
   };
 
@@ -94,8 +98,9 @@ const Profile = () => {
         ...prev,
         isPrivateProfile: newPrivacyStatus,
       }));
+      addNotification("Privacy updated");
     } catch (err) {
-      console.error("Error updating profile privacy:", err);
+      addNotification("Error updating profile privacy", "error");
     }
   };
 
@@ -116,7 +121,8 @@ const Profile = () => {
           score: response.data, 
         }));
       } catch (err) {
-        console.error("Error fetching score data:", err);
+        // addNotification("Error fetching score data","error");
+        
       }
     };
   
@@ -138,7 +144,7 @@ const Profile = () => {
         console.log(response.data)
         setIcons(response.data);
       } catch (err) {
-        console.error("Error fetching profile icons:", err);
+        addNotification("Error fetching profile icons","error");
       }
     };
 
@@ -146,7 +152,6 @@ const Profile = () => {
   }, [getToken]);
 
   const handleSetUserIcon = async (iconId) => {
-    console.log('iconId', iconId)
     try {
       const token = await getToken();
       await axios.patch(
@@ -163,8 +168,9 @@ const Profile = () => {
         ...prev,
         smallImageUrl: icons.find((icon) => icon.iconId === iconId)?.smallImageUrl || prev.smallImageUrl,
       }));
+      addNotification("Icon updated");
     } catch (err) {
-      console.error("Error updating profile icon:", err);
+      addNotification("Error updating profile icon", "error");
     }
   };
 

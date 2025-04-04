@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import axios from "axios";
 import "./MatchHistoryPage.css";
+import { useNotification } from "../../contexts/NotificationContext";
 
 const MatchHistoryPage = () => {
   const { username } = useParams();
@@ -10,6 +11,7 @@ const MatchHistoryPage = () => {
   const [matches, setMatches] = useState([]);
   const [games, setGames] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const { addNotification } = useNotification();
 
   useEffect(() => {
       document.title = `${username}'s Match History`;
@@ -29,12 +31,11 @@ const MatchHistoryPage = () => {
         );
         if (Array.isArray(response.data)) {
           setMatches(response.data);
-          console.log(response.data);
         } else {
-          console.error("Unexpected response format:", response.data);
+          addNotification("Unexpected response format", "error");
         }
       } catch (error) {
-        console.error("Error fetching matches:", error);
+        ("Error fetching matches:", error);
       }
     };
 
@@ -56,7 +57,7 @@ const MatchHistoryPage = () => {
         }, {});
         setGames(fetchedGames);
       } catch (error) {
-        console.error("Failed to fetch games:", error);
+        addNotification("Failed to fetch games", "error");
       } finally {
         setIsLoading(false);
       }

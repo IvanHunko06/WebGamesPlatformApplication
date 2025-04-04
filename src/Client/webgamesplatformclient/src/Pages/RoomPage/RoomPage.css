@@ -94,6 +94,7 @@
     gap: 10px;
     max-width: 300px;
     pointer-events: none;
+    z-index: 9999;
 }
 
 .notification {
@@ -106,11 +107,13 @@
     opacity: 0;
     transform: scale(0.9);
     transition: opacity 0.4s ease, transform 0.4s ease;
+    text-align: center;
 }
 
 .notification.visible {
     opacity: 1;
     transform: scale(1);
+    text-align: center;
 }
 
 .notification-error {

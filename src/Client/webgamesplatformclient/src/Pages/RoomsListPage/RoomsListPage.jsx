@@ -4,12 +4,14 @@ import axios from "axios";
 import "./RoomsListPage.css";
 import ModalJoin from "../GamesPage/ModalJoin";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNotification } from "../../contexts/NotificationContext";
 
 const RoomsList = () => {
   const [rooms, setRooms] = useState([]);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const { gameId } = useParams();
   const { getToken } = useAuth();
+  const { addNotification } = useNotification();
 
   useEffect(() => {
     document.title = "Rooms List Page";
@@ -33,7 +35,7 @@ const RoomsList = () => {
 
         setRooms(response.data);
       } catch (err) {
-        console.error("Error fetching rooms:", err);
+        addNotification("Error fetching rooms", "error");
       }
     };
 

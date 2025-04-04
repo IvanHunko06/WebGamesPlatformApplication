@@ -86,8 +86,8 @@
     .board {
         grid-template-columns: repeat(3, 80px);
         grid-template-rows: repeat(3, 80px);
-        gap: 5px;
-        padding: 5px;
+        gap: 10px;
+        padding: 10px;
     }
 
     .cell {
@@ -97,11 +97,11 @@
     }
 
     .player-status {
-        font-size: 1.2rem;
+        font-size: 1.7rem;
     }
 
     .player-info {
-        font-size: 1rem;
+        font-size: 1.3rem;
     }
 
     .player-info p {
