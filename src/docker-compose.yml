@@ -1,308 +1,309 @@
 
 services:
 
-  react-client:
-    image: ${DOCKER_REGISTRY-}react-client
-    container_name: "ReactWebClient"
-    build:
-        context: ./Client/webgamesplatformclient/
-        dockerfile: Dockerfile
-    networks:
-        - frontend-network
+    react-client:
+      image: ${DOCKER_REGISTRY-}react-client
+      container_name: "ReactWebClient"
+      build:
+          context: ./Client/webgamesplatformclient/
+          dockerfile: Dockerfile
+      networks:
+          - frontend-network
+      
+    nginx-gateway:
+      image: nginx
+      container_name: "ApiGateway"
+      restart: unless-stopped
+      ports:
+          - "7005:443"
+      volumes:
+          - ./Volumes/reverse-proxy/nginx.conf:/etc/nginx/nginx.conf
+          - ./Volumes/certs/api-gateway:/certs/
+          - ./Volumes/certs/authentification-server/keycloak.crt:/certs/trusted/keycloak.crt
+          - ./Volumes/resources:/var/www/static/resources
+      networks:
+          - frontend-network
+          - authtentification-service-external-net
+          - games-service-external-net
+          - rooms-service-external-net
+          - websocket-service-external-net
+          - rating-service-external-net
+          - match-history-service-external-net
+          - game-session-service-external-net
+          - processing-services-external-net
+  
+    authtentification-server:
+      image: keycloak/keycloak
+      container_name: "AuthtentificationService"
+      restart: unless-stopped
+      volumes:
+          - ./Volumes/certs/authentification-server:/certs/
+          - ./Volumes/certs/api-gateway/apiGateway.crt:/certs/trusted/apiGateway.crt
+          - ./Volumes/CustomKeycloakTheme:/opt/keycloak/themes/CustomKeycloakTheme
+      networks:
+          - authtentification-service-internal-net
+          - authtentification-service-external-net
+      environment:
+          - "KC_BOOTSTRAP_ADMIN_USERNAME=admin"
+          - "KC_BOOTSTRAP_ADMIN_PASSWORD=admin"
+          - "KC_DB=postgres"
+          - "KC_DB_USERNAME=keycloak"
+          - "KC_DB_PASSWORD=password"
+          - "KC_DB_URL=jdbc:postgresql://AuthtentificationServiceDatabase:5432/keycloak"
+          - "KC_HTTPS_CERTIFICATE_FILE=/certs/keycloak.crt"
+          - "KC_HTTPS_CERTIFICATE_KEY_FILE=/certs/keycloak-privateKey.key"
+          - "KC_PROXY_HEADERS=xforwarded"
+          - "KC_TRUSTSTORE-PATHS=/certs/trusted/"
+          - "KC_TLS_HOSTNAME_VERIFIER=ANY"
+          - "PROXY_ADDRESS_FORWARDING=true"
+          - "KC_HOSTNAME_STRICT=false"
+          - "KC_LOG_LEVEL: INFO"
+      command:  ["start-dev", "--http-relative-path", "/auth"]
+      depends_on:
+          - authtentification-server-database
     
-  nginx-gateway:
-    image: nginx
-    container_name: "ApiGateway"
-    restart: unless-stopped
-    ports:
-        - "7005:443"
-    volumes:
-        - ./Volumes/reverse-proxy/nginx.conf:/etc/nginx/nginx.conf
-        - ./Volumes/certs/api-gateway:/certs/
-        - ./Volumes/certs/authentification-server/keycloak.crt:/certs/trusted/keycloak.crt
-    networks:
-        - frontend-network
-        - authtentification-service-external-net
-        - games-service-external-net
-        - rooms-service-external-net
-        - websocket-service-external-net
-        - rating-service-external-net
-        - match-history-service-external-net
-        - game-session-service-external-net
-        - processing-services-external-net
-
-  authtentification-server:
-    image: keycloak/keycloak
-    container_name: "AuthtentificationService"
-    restart: unless-stopped
-    volumes:
-        - ./Volumes/certs/authentification-server:/certs/
-        - ./Volumes/certs/api-gateway/apiGateway.crt:/certs/trusted/apiGateway.crt
-        - ./Volumes/CustomKeycloakTheme:/opt/keycloak/themes/CustomKeycloakTheme
-    networks:
+    authtentification-server-database:
+      image: postgres:16
+      container_name:  AuthtentificationServiceDatabase
+      environment:
+        - "POSTGRES_DB=keycloak"
+        - "POSTGRES_USER=keycloak"
+        - "POSTGRES_PASSWORD=password"
+      volumes:
+        - ./Volumes/auth-database-data/:/var/lib/postgresql/data
+      networks:
         - authtentification-service-internal-net
-        - authtentification-service-external-net
-    environment:
-        - "KC_BOOTSTRAP_ADMIN_USERNAME=admin"
-        - "KC_BOOTSTRAP_ADMIN_PASSWORD=admin"
-        - "KC_DB=postgres"
-        - "KC_DB_USERNAME=keycloak"
-        - "KC_DB_PASSWORD=password"
-        - "KC_DB_URL=jdbc:postgresql://AuthtentificationServiceDatabase:5432/keycloak"
-        - "KC_HTTPS_CERTIFICATE_FILE=/certs/keycloak.crt"
-        - "KC_HTTPS_CERTIFICATE_KEY_FILE=/certs/keycloak-privateKey.key"
-        - "KC_PROXY_HEADERS=xforwarded"
-        - "KC_TRUSTSTORE-PATHS=/certs/trusted/"
-        - "KC_TLS_HOSTNAME_VERIFIER=ANY"
-        - "PROXY_ADDRESS_FORWARDING=true"
-        - "KC_HOSTNAME_STRICT=false"
-        - "KC_LOG_LEVEL: INFO"
-    command:  ["start-dev", "--http-relative-path", "/auth"]
-    depends_on:
-        - authtentification-server-database
   
-  authtentification-server-database:
-    image: postgres:16
-    container_name:  AuthtentificationServiceDatabase
-    environment:
-      - "POSTGRES_DB=keycloak"
-      - "POSTGRES_USER=keycloak"
-      - "POSTGRES_PASSWORD=password"
-    volumes:
-      - ./Volumes/auth-database-data/:/var/lib/postgresql/data
-    networks:
-      - authtentification-service-internal-net
-
-  global-data-storage:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: GlobalDataStorage
-    environment:
-        - "ACCEPT_EULA=Y"
-        - "MSSQL_SA_PASSWORD=Ck4wy|!K1>NwfzxG0Q7x"
-        - "MSSQL_PID=Express"
-    restart: unless-stopped
-    networks:
-        - global-data-storage-network
-    volumes:
-        - ./Volumes/global-data-storage/data:/var/opt/mssql/data
-        - ./Volumes/global-data-storage/secrets:/var/opt/mssql/secrets
-
-  games-service-server:
-    image: ${DOCKER_REGISTRY-}gameservice
-    build:
-        context: ./Server/
-        dockerfile: ./Services/GamesService/Dockerfile
-    container_name: GamesService
-    environment:
-        - "ASPNETCORE_HTTP_PORTS=5247"
-    restart: unless-stopped
-    depends_on:
-        - global-data-storage
-    networks:
-        - global-data-storage-network
-        - games-service-external-net
-        - authtentification-service-external-net
-
-  rooms-service-server:
-    image: ${DOCKER_REGISTRY-}roomsservice
-    build:
-        context: ./Server/
-        dockerfile: ./Services/RoomsService/Dockerfile
-    container_name: RoomsService
-    environment:
-        - "ASPNETCORE_HTTP_PORTS=5063"
-    restart: unless-stopped
-    depends_on:
-        - rooms-service-database
-    networks:
-        - rooms-service-internal-net
-        - rooms-service-external-net
-        - authtentification-service-external-net
-        - message-broker-network
-
-  rooms-service-database:
-    image: redis
-    container_name: RoomsServiceDatabase
-    restart: unless-stopped
-    networks:
-        - rooms-service-internal-net
+    global-data-storage:
+      image: mcr.microsoft.com/mssql/server:2022-latest
+      container_name: GlobalDataStorage
+      environment:
+          - "ACCEPT_EULA=Y"
+          - "MSSQL_SA_PASSWORD=Ck4wy|!K1>NwfzxG0Q7x"
+          - "MSSQL_PID=Express"
+      restart: unless-stopped
+      networks:
+          - global-data-storage-network
+      volumes:
+          - ./Volumes/global-data-storage/data:/var/opt/mssql/data
+          - ./Volumes/global-data-storage/secrets:/var/opt/mssql/secrets
   
-  web-socket-service-server:
-    image: ${DOCKER_REGISTRY-}websocket-service
-    build:
-        context: ./Server/
-        dockerfile: ./Services/WebSocketService/Dockerfile
-    container_name: WebSocketService
-    environment:
-        - "ASPNETCORE_HTTP_PORTS=5059"
-    restart: unless-stopped
-    networks:
-        - websocket-service-external-net
-        - websocket-service-internal-net
-        - message-broker-network
-        - authtentification-service-external-net
-
-  web-socket-service-database:
-    image: redis
-    container_name: WebSocketServiceDatabase
-    restart: unless-stopped
-    networks:
-        - websocket-service-internal-net
-
-
-  rating-service-server:
-    image: ${DOCKER_REGISTRY-}ratingservice
-    build:
-        context: ./Server/
-        dockerfile: ./Services/RatingService/Dockerfile
-    container_name: RatingService
-    environment:
-        - "ASPNETCORE_HTTP_PORTS=5263"
+    games-service-server:
+      image: ${DOCKER_REGISTRY-}gameservice
+      build:
+          context: ./Server/
+          dockerfile: ./Services/GamesService/Dockerfile
+      container_name: GamesService
+      environment:
+          - "ASPNETCORE_HTTP_PORTS=5247"
+      restart: unless-stopped
+      depends_on:
+          - global-data-storage
+      networks:
+          - global-data-storage-network
+          - games-service-external-net
+          - authtentification-service-external-net
+  
+    rooms-service-server:
+      image: ${DOCKER_REGISTRY-}roomsservice
+      build:
+          context: ./Server/
+          dockerfile: ./Services/RoomsService/Dockerfile
+      container_name: RoomsService
+      environment:
+          - "ASPNETCORE_HTTP_PORTS=5063"
+      restart: unless-stopped
+      depends_on:
+          - rooms-service-database
+      networks:
+          - rooms-service-internal-net
+          - rooms-service-external-net
+          - authtentification-service-external-net
+          - message-broker-network
+  
+    rooms-service-database:
+      image: redis
+      container_name: RoomsServiceDatabase
+      restart: unless-stopped
+      networks:
+          - rooms-service-internal-net
     
-    restart: unless-stopped
-    depends_on:
-        - global-data-storage
-    networks:
-        - global-data-storage-network
-        - rating-service-external-net
-        - message-broker-network
-        - authtentification-service-external-net
+    web-socket-service-server:
+      image: ${DOCKER_REGISTRY-}websocket-service
+      build:
+          context: ./Server/
+          dockerfile: ./Services/WebSocketService/Dockerfile
+      container_name: WebSocketService
+      environment:
+          - "ASPNETCORE_HTTP_PORTS=5059"
+      restart: unless-stopped
+      networks:
+          - websocket-service-external-net
+          - websocket-service-internal-net
+          - message-broker-network
+          - authtentification-service-external-net
   
-  match-history-service-server:
-    image: ${DOCKER_REGISTRY-}matchhistoryservice
-    build:
-        context: ./Server/
-        dockerfile: ./Services/MatchHistoryService/Dockerfile
-    container_name: MatchHistoryService
-    environment:
-        - "ASPNETCORE_HTTP_PORTS=5063"
+    web-socket-service-database:
+      image: redis
+      container_name: WebSocketServiceDatabase
+      restart: unless-stopped
+      networks:
+          - websocket-service-internal-net
+  
+  
+    rating-service-server:
+      image: ${DOCKER_REGISTRY-}ratingservice
+      build:
+          context: ./Server/
+          dockerfile: ./Services/RatingService/Dockerfile
+      container_name: RatingService
+      environment:
+          - "ASPNETCORE_HTTP_PORTS=5263"
+      
+      restart: unless-stopped
+      depends_on:
+          - global-data-storage
+      networks:
+          - global-data-storage-network
+          - rating-service-external-net
+          - message-broker-network
+          - authtentification-service-external-net
     
-    restart: unless-stopped
-    depends_on:
-        - global-data-storage
-    networks:
-        - global-data-storage-network
-        - match-history-service-external-net
-        - message-broker-network
-        - authtentification-service-external-net
-  
-  game-session-service-server:
-    image: ${DOCKER_REGISTRY-}gamesessionservice
-    build:
-        context: ./Server/
-        dockerfile: ./Services/GameSessionService/Dockerfile
-    container_name: GameSessionService
-    environment:
-        - "ASPNETCORE_HTTP_PORTS=5087"
+    match-history-service-server:
+      image: ${DOCKER_REGISTRY-}matchhistoryservice
+      build:
+          context: ./Server/
+          dockerfile: ./Services/MatchHistoryService/Dockerfile
+      container_name: MatchHistoryService
+      environment:
+          - "ASPNETCORE_HTTP_PORTS=5063"
+      
+      restart: unless-stopped
+      depends_on:
+          - global-data-storage
+      networks:
+          - global-data-storage-network
+          - match-history-service-external-net
+          - message-broker-network
+          - authtentification-service-external-net
     
-    restart: unless-stopped
-    networks:
-        - game-session-service-external-net
-        - game-session-service-internal-net
-        - message-broker-network
-        - authtentification-service-external-net
-  
-  game-session-service-database:
-    image: redis
-    container_name: GameSessionServiceDatabase
-    restart: unless-stopped
-    networks:
-        - game-session-service-internal-net
-  
-  tic-tac-toe-game-processing:
-    image: ${DOCKER_REGISTRY-}tictactoegameprocessing
-    build:
-        context: ./Server/
-        dockerfile: ./Services/GameProcessing/TicTacToeGameProcessing/Dockerfile
-    container_name: TicTacToeGameProcessing
-    environment:
-        - "ASPNETCORE_HTTP_PORTS=5203"
-    restart: unless-stopped
-    networks:
-        - authtentification-service-external-net
-        - processing-services-external-net
-        - message-broker-network
-
-  rabbitmq-message-broker:
-    image: rabbitmq:4.0-management-alpine
-    container_name: MessageBroker
-    hostname: gamesplatform-mq
-    environment:
-        - "RABBITMQ_DEFAULT_USER=admin"
-        - "RABBITMQ_DEFAULT_PASS=admin"
-    ports:
-        - "15672:15672"
-    networks:
-        - message-broker-network
-    volumes:
-        - ./Volumes/message-broker/data/:/var/lib/rabbitmq
-
-  profile-service-server:
-    image: ${DOCKER_REGISTRY-}profileservice
-    build:
-        context: ./Server/
-        dockerfile: ./Services/ProfileService/Dockerfile
-    container_name: ProfileService
-    environment:
-        - "ASPNETCORE_HTTP_PORTS=5151"
-    depends_on:
-        - global-data-storage
-    restart: unless-stopped
-    networks:
-        - authtentification-service-external-net
-        - profile-service-external-net
-        - message-broker-network
-        - global-data-storage-network
-   
-  
+    game-session-service-server:
+      image: ${DOCKER_REGISTRY-}gamesessionservice
+      build:
+          context: ./Server/
+          dockerfile: ./Services/GameSessionService/Dockerfile
+      container_name: GameSessionService
+      environment:
+          - "ASPNETCORE_HTTP_PORTS=5087"
+      
+      restart: unless-stopped
+      networks:
+          - game-session-service-external-net
+          - game-session-service-internal-net
+          - message-broker-network
+          - authtentification-service-external-net
     
-networks:
-    frontend-network:
-        driver: bridge
-        name: FrontendNetwork
-    authtentification-service-internal-net:
-        driver: bridge
-        name: AuthtentificationServiceInternalNetwork
-    authtentification-service-external-net:
-        driver: bridge
-        name: AuthtentificationServiceExternalNetwork
-    games-service-external-net:
-        driver: bridge
-        name: GamesServiceExternalNetwork
-    rooms-service-external-net:
-        driver: bridge
-        name: RoomsServiceExternalNetwork
-    rooms-service-internal-net:
-        driver: bridge
-        name: RoomsServiceInternalNetwork
-    websocket-service-external-net:
-        driver:  bridge
-        name: WebSocketServiceExternalNetwork
-    websocket-service-internal-net:
-        driver:  bridge
-        name: WebSocketServiceInternalNetwork
-    rating-service-external-net:
-        driver: bridge
-        name: RatingServiceExternalNetwork
-    match-history-service-external-net:
-        driver: bridge
-        name: MatchHistoryServiceExternalNetwork
-    game-session-service-external-net:
-        driver: bridge
-        name: GameSessionServiceExternalNetwork
-    game-session-service-internal-net:
-        driver: bridge
-        name: GameSessionServiceInternalNetwork
-    processing-services-external-net:
-        driver: bridge
-        name: ProcessingServicesExternalNetwork
-    message-broker-network:
-        driver: bridge
-        name: MessageBrokerNetwork
-    profile-service-external-net:
-        driver: bridge
-        name: ProfileServiceExternalNetwork
-    global-data-storage-network:
-        driver: bridge
-        name: GlobalDataStorageNetwork
-        
+    game-session-service-database:
+      image: redis
+      container_name: GameSessionServiceDatabase
+      restart: unless-stopped
+      networks:
+          - game-session-service-internal-net
+    
+    tic-tac-toe-game-processing:
+      image: ${DOCKER_REGISTRY-}tictactoegameprocessing
+      build:
+          context: ./Server/
+          dockerfile: ./Services/GameProcessing/TicTacToeGameProcessing/Dockerfile
+      container_name: TicTacToeGameProcessing
+      environment:
+          - "ASPNETCORE_HTTP_PORTS=5203"
+      restart: unless-stopped
+      networks:
+          - authtentification-service-external-net
+          - processing-services-external-net
+          - message-broker-network
+  
+    rabbitmq-message-broker:
+      image: rabbitmq:4.0-management-alpine
+      container_name: MessageBroker
+      hostname: gamesplatform-mq
+      environment:
+          - "RABBITMQ_DEFAULT_USER=admin"
+          - "RABBITMQ_DEFAULT_PASS=admin"
+      ports:
+          - "15672:15672"
+      networks:
+          - message-broker-network
+      volumes:
+          - ./Volumes/message-broker/data/:/var/lib/rabbitmq
+  
+    profile-service-server:
+      image: ${DOCKER_REGISTRY-}profileservice
+      build:
+          context: ./Server/
+          dockerfile: ./Services/ProfileService/Dockerfile
+      container_name: ProfileService
+      environment:
+          - "ASPNETCORE_HTTP_PORTS=5151"
+      depends_on:
+          - global-data-storage
+      restart: unless-stopped
+      networks:
+          - authtentification-service-external-net
+          - profile-service-external-net
+          - message-broker-network
+          - global-data-storage-network
+     
+    
+      
+  networks:
+      frontend-network:
+          driver: bridge
+          name: FrontendNetwork
+      authtentification-service-internal-net:
+          driver: bridge
+          name: AuthtentificationServiceInternalNetwork
+      authtentification-service-external-net:
+          driver: bridge
+          name: AuthtentificationServiceExternalNetwork
+      games-service-external-net:
+          driver: bridge
+          name: GamesServiceExternalNetwork
+      rooms-service-external-net:
+          driver: bridge
+          name: RoomsServiceExternalNetwork
+      rooms-service-internal-net:
+          driver: bridge
+          name: RoomsServiceInternalNetwork
+      websocket-service-external-net:
+          driver:  bridge
+          name: WebSocketServiceExternalNetwork
+      websocket-service-internal-net:
+          driver:  bridge
+          name: WebSocketServiceInternalNetwork
+      rating-service-external-net:
+          driver: bridge
+          name: RatingServiceExternalNetwork
+      match-history-service-external-net:
+          driver: bridge
+          name: MatchHistoryServiceExternalNetwork
+      game-session-service-external-net:
+          driver: bridge
+          name: GameSessionServiceExternalNetwork
+      game-session-service-internal-net:
+          driver: bridge
+          name: GameSessionServiceInternalNetwork
+      processing-services-external-net:
+          driver: bridge
+          name: ProcessingServicesExternalNetwork
+      message-broker-network:
+          driver: bridge
+          name: MessageBrokerNetwork
+      profile-service-external-net:
+          driver: bridge
+          name: ProfileServiceExternalNetwork
+      global-data-storage-network:
+          driver: bridge
+          name: GlobalDataStorageNetwork
+          
