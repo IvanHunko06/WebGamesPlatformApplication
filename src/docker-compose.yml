@@ -1,4 +1,3 @@
-
 services:
 
     react-client:
@@ -254,10 +253,7 @@ services:
           - profile-service-external-net
           - message-broker-network
           - global-data-storage-network
-     
-    
-      
-  networks:
+networks:
       frontend-network:
           driver: bridge
           name: FrontendNetwork

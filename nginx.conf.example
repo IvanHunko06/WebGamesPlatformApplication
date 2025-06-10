@@ -1,0 +1,215 @@
+
+events {
+}
+http {
+
+
+	include mime.types;
+	upstream frontend_react_service {
+        least_conn;
+        server								ReactWebClient:5173;
+    }
+	upstream authtentification_server {
+        least_conn;
+        server								AuthtentificationService:8443;
+    }
+	upstream games_service_http2 {
+        least_conn;
+        server								GamesService:5247;
+    }
+	upstream games_service_http1 {
+        least_conn;
+        server								GamesService:5246;
+    }
+	upstream rooms_service_http2 {
+        least_conn;
+        server								RoomsService:5063;
+    }
+	upstream rooms_service_http1 {
+        least_conn;
+        server								RoomsService:5062;
+    }
+	upstream websocket_service_http1 {
+        least_conn;
+        server								WebSocketService:5059;
+    }
+	upstream websocket_service_http2 {
+        least_conn;
+        server								WebSocketService:5060;
+    }
+	upstream rating_service_http2 {
+        least_conn;
+        server								RatingService:5263;
+    }
+	upstream rating_service_http1 {
+        least_conn;
+        server								RatingService:5262;
+    }
+	upstream profile_service_http1 {
+        least_conn;
+        server								ProfileService:5151;
+    }
+	upstream match_history_service_http2 {
+        least_conn;
+        server								MatchHistoryService:5063;
+    }
+	upstream match_history_service_http1 {
+        least_conn;
+        server								MatchHistoryService:5062;
+    }
+	upstream game_session_service {
+        least_conn;
+        server								GameSessionService:5087;
+    }
+
+	server {
+		listen								443 ssl;
+		http2								on;
+		ssl_certificate						/certs/apiGateway.crt;
+		ssl_certificate_key					/certs/apiGateway-privateKey.key;
+		ssl_protocols						TLSv1.1 TLSv1.2 TLSv1.3;
+		ssl_ciphers							HIGH:!aNULL:!MD5;
+		keepalive_timeout					70;
+		error_log							/var/log/nginx/error.log debug;
+		location / {
+			proxy_pass						http://frontend_react_service;
+			proxy_set_header				Host $host;
+			proxy_set_header				X-Real-IP $remote_addr;
+			proxy_set_header				X-Forwarded-For $proxy_add_x_forwarded_for;
+			proxy_set_header				X-Forwarded-Host $host;
+			proxy_set_header				X-Forwarded-Server $host;
+			proxy_set_header				X-Forwarded-Port 7005;
+			proxy_set_header				X-Forwarded-Proto $scheme;
+		}
+		location /api/services/games-service/grpc/ {
+			grpc_set_header					Host $host;
+			grpc_set_header					X-Real-IP $remote_addr;
+			grpc_set_header					X-Forwarded-For $proxy_add_x_forwarded_for;
+			grpc_set_header					X-Forwarded-Host $host;
+			grpc_set_header					X-Forwarded-Server $host;
+			grpc_set_header					X-Forwarded-Proto $scheme;
+			rewrite							^/api/services/games-service/grpc/(.*) /$1 break;
+			grpc_pass						grpc://games_service_http2;
+		}
+
+		location /api/services/games-service/rest/ {
+			rewrite ^/api/services/games-service/rest/(.*) /rest/GamesService/$1 break;
+			proxy_http_version 1.1;
+			proxy_read_timeout 70s;
+			proxy_pass http://games_service_http1;
+		}
+
+		location /api/services/rooms-service/grpc/ {
+			grpc_set_header					Host $host;
+			grpc_set_header					X-Real-IP $remote_addr;
+			grpc_set_header					X-Forwarded-For $proxy_add_x_forwarded_for;
+			grpc_set_header					X-Forwarded-Host $host;
+			grpc_set_header					X-Forwarded-Server $host;
+			grpc_set_header					X-Forwarded-Proto $scheme;
+			rewrite							^/api/services/rooms-service/grpc/(.*) /$1 break;
+			grpc_pass						grpc://rooms_service_http2;
+		}
+		location /api/services/rooms-service/rest/ {
+			rewrite ^/api/services/rooms-service/rest/(.*) /rest/RoomsService/$1 break;
+			proxy_http_version 1.1;
+			proxy_read_timeout 70s;
+			proxy_pass http://rooms_service_http1;
+		}
+		location /api/services/profile-service/rest/ {
+			rewrite ^/api/services/profile-service/rest/(.*) /rest/ProfileService/$1 break;
+			proxy_http_version 1.1;
+			proxy_read_timeout 70s;
+			proxy_pass http://profile_service_http1;
+		}
+		location /api/services/rating-service/grpc/ {
+			grpc_set_header					Host $host;
+			grpc_set_header					X-Real-IP $remote_addr;
+			grpc_set_header					X-Forwarded-For $proxy_add_x_forwarded_for;
+			grpc_set_header					X-Forwarded-Host $host;
+			grpc_set_header					X-Forwarded-Server $host;
+			grpc_set_header					X-Forwarded-Proto $scheme;
+			rewrite							^/api/services/rating-service/grpc/(.*) /$1 break;
+			grpc_pass						grpc://rating_service_http2;
+		}
+		location /api/services/rating-service/rest/ {
+			rewrite ^/api/services/rating-service/rest/(.*) /rest/RatingService/$1 break;
+			proxy_http_version 1.1;
+			proxy_read_timeout 70s;
+			proxy_pass http://rating_service_http1;
+		}
+
+		location /api/services/match-history-service/grpc/ {
+			grpc_set_header					Host $host;
+			grpc_set_header					X-Real-IP $remote_addr;
+			grpc_set_header					X-Forwarded-For $proxy_add_x_forwarded_for;
+			grpc_set_header					X-Forwarded-Host $host;
+			grpc_set_header					X-Forwarded-Server $host;
+			grpc_set_header					X-Forwarded-Proto $scheme;
+			rewrite							^/api/services/match-history-service/grpc/(.*) /$1 break;
+			grpc_pass						grpc://match_history_service_http2;
+		}
+		location /api/services/match-history-service/rest/ {
+			rewrite ^/api/services/match-history-service/rest/(.*) /rest/MatchHistoryService/$1 break;
+			proxy_http_version 1.1;
+			proxy_read_timeout 70s;
+			proxy_pass http://match_history_service_http1;
+		}
+
+		location /api/services/game-session-service/ {
+			grpc_set_header					Host $host;
+			grpc_set_header					X-Real-IP $remote_addr;
+			grpc_set_header					X-Forwarded-For $proxy_add_x_forwarded_for;
+			grpc_set_header					X-Forwarded-Host $host;
+			grpc_set_header					X-Forwarded-Server $host;
+			grpc_set_header					X-Forwarded-Proto $scheme;
+			rewrite							^/api/services/game-session-service/(.*) /$1 break;
+			grpc_pass						grpc://GameSessionService:5087;
+		}
+
+		location /api/hubs/ {
+			rewrite ^/api/hubs/(.*) /hubs/$1 break;
+			proxy_http_version 1.1;
+			proxy_set_header Upgrade $http_upgrade;
+			proxy_set_header Connection "upgrade";
+			proxy_read_timeout 70s;
+			proxy_pass http://websocket_service_http1;
+		}
+
+		location /auth {
+			proxy_pass						https://authtentification_server;
+			proxy_set_header				Host $host;
+			proxy_set_header				X-Real-IP $remote_addr;
+			proxy_set_header				X-Forwarded-For $proxy_add_x_forwarded_for;
+			proxy_set_header				X-Forwarded-Host $host;
+			proxy_set_header				X-Forwarded-Server $host;
+			proxy_set_header				X-Forwarded-Port 7005;
+			proxy_set_header				X-Forwarded-Proto $scheme;
+			proxy_ssl_certificate			/certs/apiGateway.crt;
+			proxy_ssl_certificate_key		/certs/apiGateway-privateKey.key;
+			proxy_ssl_trusted_certificate	/certs/trusted/keycloak.crt;
+			proxy_ssl_name					"AuthtentificationService";
+			proxy_ssl_server_name			on;
+			proxy_ssl_verify				on;
+			proxy_ssl_protocols				TLSv1.3;
+			proxy_ssl_verify_depth			2;
+		}
+
+		location /resources/images/{
+			root /var/www/static;
+			autoindex on;
+		}
+
+		#location /auth/admin{
+		#	allow localhost;
+		#	deny all;
+		#}
+		#location /auth/metrics{
+		#	allow localhost;
+		#	deny all;
+		#}
+		#location /auth/health{
+		#	allow localhost;
+		#	deny all;
+		#}
+	}
+}
